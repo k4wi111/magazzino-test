@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Magazzino TEST – Prelievo Unico</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<h1 style="background:#c62828;color:white;padding:10px">
+  MAGAZZINO TEST – PRELIEVO UNICO
+</h1>
+
+<section id="listSection">
+  <div class="prelievo-toggle">
+    <label>
+      <input type="checkbox" id="togglePrelievo">
+      Modalità Prelievo
+    </label>
+  </div>
+
+  <div class="card" id="cardScaffale">
+    <h3>Prodotti su scaffali</h3>
+    <div id="listUnplaced"></div>
+  </div>
+
+  <div class="card" id="cardTerra">
+    <h3>Prodotti a terra</h3>
+    <div id="listPlaced"></div>
+  </div>
+
+  <div class="card" id="prelievoCard" style="display:none">
+    <h3>PRELIEVO</h3>
+    <div id="listPrelievo"></div>
+  </div>
+</section>
+
+<script src="js/app.js"></script>
+<script src="js/listView.js"></script>
+</body>
+</html>
