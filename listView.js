@@ -1,75 +1,299 @@
-/* ================================
-   LIST VIEW – MODALITÀ PRELIEVO A PULSANTE
-   ================================ */
+let activeListPage = 0;
+let touchStartX = null;
+// js/listView.js
+'use strict';
 
-let listMode = 'normal'; // 'normal' | 'prelievo'
+import { el, showNotification } from './ui.js';
+import { products, saveProducts, saveToUndo, rebuildGridIndex } from './state.js';
+import { getExpiryStatus, daysSinceProduction, daysSinceISO, giacenzaStatus } from './utils.js';
 
-function renderList() {
-  const container = document.getElementById('listView');
-  if (!container) return;
+export function makeBtn(cls, text, action, id){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = cls;
+  b.textContent = text;
+  b.dataset.action = action;
+  b.dataset.id = id;
+  return b;
+}
 
-  container.innerHTML = '';
 
-  // PULSANTE MODALITÀ PRELIEVO
-  const toggleBtn = document.createElement('button');
-  toggleBtn.id = 'prelievoToggleBtn';
-  toggleBtn.style.margin = '10px 0';
-  toggleBtn.style.padding = '8px 12px';
-  toggleBtn.style.fontWeight = 'bold';
-  toggleBtn.textContent =
-    listMode === 'prelievo' ? 'Torna alla Lista' : 'Vai in Prelievo';
+// ===== PATCH: MODALITÀ PRELIEVO (PULSANTE) =====
+let _prelievoMode = false;
 
-  toggleBtn.onclick = () => {
-    listMode = listMode === 'normal' ? 'prelievo' : 'normal';
-    renderList();
-  };
+function ensurePrelievoToggle(){
+  const card = el.listUnplaced?.closest('.card');
+  if (!card) return;
 
-  container.appendChild(toggleBtn);
+  let btn = card.querySelector('#prelievoToggleBtn');
+  if (!btn){
+    btn = document.createElement('button');
+    btn.id = 'prelievoToggleBtn';
+    btn.className = 'ghost';
+    btn.style.marginBottom = '12px';
+    btn.onclick = () => {
+      _prelievoMode = !_prelievoMode;
+      renderList();
+    };
+    card.prepend(btn);
+  }
+  btn.textContent = _prelievoMode ? 'Torna alla Lista' : 'Vai in Prelievo';
+}
 
-  // ===== MODALITÀ PRELIEVO =====
-  if (listMode === 'prelievo') {
-    const section = document.createElement('div');
-    section.className = 'list-section';
+function renderPrelievoVirtualList(){
+  const cardUnplaced = el.listUnplaced.closest('.card');
+  const cardPlaced = el.listPlaced.closest('.card');
+  cardUnplaced.style.display = 'none';
+  cardPlaced.style.display = 'none';
 
-    const title = document.createElement('h3');
-    title.textContent = 'Prodotti in Prelievo';
-    section.appendChild(title);
+  let v = document.getElementById('virtualPrelievoCard');
+  if (v) v.remove();
 
-    const prelievo = state.products.filter(p => p.inPrelievo);
+  const vCard = document.createElement('div');
+  vCard.id = 'virtualPrelievoCard';
+  vCard.className = 'card';
 
-    if (prelievo.length === 0) {
-      const empty = document.createElement('div');
-      empty.textContent = 'Nessun prodotto in prelievo';
-      empty.style.opacity = '0.7';
-      section.appendChild(empty);
-    } else {
-      prelievo.forEach(p => {
-        section.appendChild(renderProductRow(p));
-      });
+  const h = document.createElement('h3');
+  h.className = 'section';
+  h.textContent = 'Prodotti in Prelievo';
+  vCard.appendChild(h);
+
+  const wrap = document.createElement('div');
+  const prels = products.filter(p => p.inPrelievo);
+
+  if (!prels.length){
+    const d = document.createElement('div');
+    d.className='muted';
+    d.style.padding='20px';
+    d.style.textAlign='center';
+    d.style.fontStyle='italic';
+    d.textContent='Nessun prodotto in prelievo.';
+    wrap.appendChild(d);
+  } else {
+    for (const p of prels){
+      const isPlaced = Number.isInteger(p.row) && Number.isInteger(p.col);
+      wrap.appendChild(buildItem(p, isPlaced));
     }
+  }
+  vCard.appendChild(wrap);
+  cardUnplaced.before(vCard);
+}
 
-    container.appendChild(section);
+function restoreNormalList(){
+  const cardUnplaced = el.listUnplaced.closest('.card');
+  const cardPlaced = el.listPlaced.closest('.card');
+  cardUnplaced.style.display = '';
+  cardPlaced.style.display = '';
+  const v = document.getElementById('virtualPrelievoCard');
+  if (v) v.remove();
+}
+// ===== FINE PATCH =====
+
+export function renderList(){
+  // PATCH: pulsante prelievo sopra scaffali
+  ensurePrelievoToggle();
+  if (_prelievoMode){
+    renderPrelievoVirtualList();
     return;
+  } else {
+    restoreNormalList();
   }
 
-  // ===== RENDER NORMALE (INVARIATO) =====
-  const scaffaleSection = document.createElement('div');
-  scaffaleSection.className = 'list-section';
-  const st = document.createElement('h3');
-  st.textContent = 'Prodotti su Scaffale';
-  scaffaleSection.appendChild(st);
+  const q = (el.search.value || '').trim().toLowerCase();
+  const unplaced = [];
+  const placed = [];
 
-  const terraSection = document.createElement('div');
-  terraSection.className = 'list-section';
-  const tt = document.createElement('h3');
-  tt.textContent = 'Prodotti a Terra';
-  terraSection.appendChild(tt);
+  for (const p of products){
+    if (q){
+      const n = (p.name || '').toLowerCase();
+      const l = (p.lot || '').toLowerCase();
+      if (!n.includes(q) && !l.includes(q)) continue;
+    }
+    if (Number.isInteger(p.row) && Number.isInteger(p.col)) placed.push(p);
+    else unplaced.push(p);
+  }
 
-  state.products.forEach(p => {
-    if (p.col == null) scaffaleSection.appendChild(renderProductRow(p));
-    else terraSection.appendChild(renderProductRow(p));
+  el.listUnplaced.textContent = '';
+  el.listPlaced.textContent = '';
+
+  const buildFrag = (arr, isPlaced) => {
+    const frag = document.createDocumentFragment();
+    for (const p of arr) frag.appendChild(buildItem(p, isPlaced));
+    return frag;
+  };
+
+  if (!unplaced.length){
+    const d = document.createElement('div'); d.className='muted'; d.style.padding='20px'; d.style.textAlign='center'; d.style.fontStyle='italic';
+    d.textContent='Nessun prodotto in attesa di posizionamento.'; el.listUnplaced.appendChild(d);
+  } else el.listUnplaced.appendChild(buildFrag(unplaced,false));
+
+  if (!placed.length){
+    const d = document.createElement('div'); d.className='muted'; d.style.padding='20px'; d.style.textAlign='center'; d.style.fontStyle='italic';
+    d.textContent='Il magazzino è vuoto.'; el.listPlaced.appendChild(d);
+  } else el.listPlaced.appendChild(buildFrag(placed,true));
+}
+
+function buildItem(p, isPlaced){
+  const node = el.tpl.content.firstElementChild.cloneNode(true);
+  node.querySelector('.abbr').textContent = p.name || '(senza descrizione)';
+
+  const detail = node.querySelector('[data-detail]');
+  detail.textContent = '🏷️ ' + (p.lot || '—');
+  if (isPlaced){
+    detail.innerHTML = `🏷️ ${(p.lot||'—')} <span style="margin-left:8px; color:#667eea; font-weight:700">📍 R${p.row+1} C${p.col+1}</span>`;
+  }
+  if (p.inPrelievo){
+    detail.innerHTML += ` <span class="pill-prel">IN PRELIEVO</span>`;
+  }
+
+  const meta = document.createElement('div');
+  meta.className='smallmeta';
+  meta.textContent = 'Inserito: ' + new Date(p.dateAdded).toLocaleDateString('it-IT');
+  node.querySelector('div[style="min-width:0"]').appendChild(meta);
+
+  const tagsWrap = document.createElement('div'); tagsWrap.className='tagline';
+  const exp = getExpiryStatus(p.expiryText);
+  if (p.expiryText && exp){
+    const t=document.createElement('div'); t.className='tag '+exp.cls; t.textContent=exp.label; tagsWrap.appendChild(t);
+  }
+  const gDays = (daysSinceProduction(p) ?? daysSinceISO(p.dateAdded));
+  const g = giacenzaStatus(gDays);
+  if (g){
+    const t2=document.createElement('div'); t2.className='tag '+g.cls; t2.textContent=g.label; tagsWrap.appendChild(t2);
+  }
+  if (tagsWrap.childNodes.length) node.querySelector('div[style="min-width:0"]').appendChild(tagsWrap);
+
+  const btns = node.querySelector('[data-btns]');
+  btns.appendChild(makeBtn('secondary','Modifica','edit',p.id));
+  if (!p.inPrelievo) btns.appendChild(makeBtn('secondary','Metti in prelievo','prel',p.id));
+  if (p.inPrelievo) btns.appendChild(makeBtn('remove-grid','Completa prelievo','prel_done',p.id));
+  if (isPlaced){
+    btns.appendChild(makeBtn('remove-grid','Metti a scaffale','unplace',p.id));
+    btns.appendChild(makeBtn('go-to-map','Mappa','map',p.id));
+  } else {
+    btns.appendChild(makeBtn('add-grid','Posiziona a terra','place',p.id));
+  }
+  btns.appendChild(makeBtn('danger','Elimina','del',p.id));
+  return node;
+}
+
+export function initListInteractions({switchTab, openEditDialog, chooseColumn, findFirstEmptyInColumn, compactColumn, scheduleRenderAll}){
+  function onClick(e){
+    const btn = e.target.closest('button'); if (!btn) return;
+    const action = btn.dataset.action; const id = btn.dataset.id;
+    const p = products.find(x => x.id === id); if (!p) return;
+
+    if (action === 'map'){ switchTab('mappa'); return; }
+    if (action === 'edit'){ openEditDialog(id); return; }
+
+    if (action === 'prel'){
+      const name = (p.name||'').trim();
+      if (products.some(x => x!==p && (x.name||'').trim()===name && x.inPrelievo)){
+        showNotification('Info','Prodotto già in prelievo',true); return;
+      }
+      saveToUndo();
+      if (Number.isInteger(p.row) && Number.isInteger(p.col)){
+        p._prevRow = p.row; p._prevCol = p.col;
+        delete p.row; delete p.col;
+      }
+      p.inPrelievo = true;
+      rebuildGridIndex();
+      saveProducts();
+      scheduleRenderAll();
+      return;
+    }
+
+    if (action === 'prel_done'){
+      saveToUndo();
+      p.inPrelievo = false;
+      if (Number.isInteger(p._prevRow) && Number.isInteger(p._prevCol)){
+        p.row = p._prevRow; p.col = p._prevCol;
+        delete p._prevRow; delete p._prevCol;
+      }
+      rebuildGridIndex();
+      saveProducts();
+      scheduleRenderAll();
+      return;
+    }
+
+    if (action === 'unplace'){
+      if (p.inPrelievo) return;
+      saveToUndo();
+      const oldCol = p.col;
+      delete p.row; delete p.col;
+      rebuildGridIndex();
+      saveProducts();
+      if (Number.isInteger(oldCol)) compactColumn(oldCol);
+      scheduleRenderAll();
+      return;
+    }
+
+    if (action === 'place'){
+      if (p.inPrelievo) return;
+      chooseColumn().then((col)=>{
+        if (col==null) return;
+        const spot = findFirstEmptyInColumn(col);
+        if (!spot){ showNotification('Colonna Piena',"Scegli un'altra colonna.",false); return; }
+        saveToUndo();
+        p.row = spot.r; p.col = col;
+        rebuildGridIndex();
+        saveProducts();
+        scheduleRenderAll();
+      });
+      return;
+    }
+
+    if (action === 'del'){
+      showNotification('Conferma','Eliminare questo prodotto?',true,()=>{
+        saveToUndo();
+        const oldCol = p.col;
+        const idx = products.findIndex(x => x.id === id);
+        if (idx>=0) products.splice(idx,1);
+        rebuildGridIndex();
+        saveProducts();
+        if (Number.isInteger(oldCol)) compactColumn(oldCol);
+        scheduleRenderAll();
+      });
+      return;
+    }
+  }
+  el.listUnplaced.addEventListener('click', onClick);
+  el.listPlaced.addEventListener('click', onClick);
+}
+
+function updateListTabs(){
+  document.querySelectorAll('.list-tabs button').forEach(btn=>{
+    btn.classList.toggle('active', Number(btn.dataset.page)===activeListPage);
+  });
+}
+
+function initListPager(){
+  const pager=document.querySelector('.list-pager');
+  const wrapper=document.querySelector('.list-pager-wrapper');
+  if(!pager||!wrapper) return;
+
+  document.querySelectorAll('.list-tabs button').forEach(btn=>{
+    btn.onclick=()=>{
+      activeListPage=Number(btn.dataset.page);
+      pager.style.transform=`translateX(-${activeListPage*100}vw)`;
+      updateListTabs();
+    };
   });
 
-  container.appendChild(scaffaleSection);
-  container.appendChild(terraSection);
+  wrapper.addEventListener('touchstart',e=>{
+    touchStartX=e.touches[0].clientX;
+  },{passive:true});
+
+  wrapper.addEventListener('touchend',e=>{
+    if(touchStartX===null) return;
+    const dx=e.changedTouches[0].clientX-touchStartX;
+    if(Math.abs(dx)>40){
+      if(dx<0&&activeListPage<2) activeListPage++;
+      if(dx>0&&activeListPage>0) activeListPage--;
+      pager.style.transform=`translateX(-${activeListPage*100}vw)`;
+      updateListTabs();
+    }
+    touchStartX=null;
+  });
 }
+initListPager();
