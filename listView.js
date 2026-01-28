@@ -17,91 +17,11 @@ export function makeBtn(cls, text, action, id){
   return b;
 }
 
-
-// ===== PATCH: MODALITÀ PRELIEVO (PULSANTE) =====
-let _prelievoMode = false;
-
-function ensurePrelievoToggle(){
-  const card = el.listUnplaced?.closest('.card');
-  if (!card) return;
-
-  let btn = card.querySelector('#prelievoToggleBtn');
-  if (!btn){
-    btn = document.createElement('button');
-    btn.id = 'prelievoToggleBtn';
-    btn.className = 'ghost';
-    btn.style.marginBottom = '12px';
-    btn.onclick = () => {
-      _prelievoMode = !_prelievoMode;
-      renderList();
-    };
-    card.prepend(btn);
-  }
-  btn.textContent = _prelievoMode ? 'Torna alla Lista' : 'Vai in Prelievo';
-}
-
-function renderPrelievoVirtualList(){
-  const cardUnplaced = el.listUnplaced.closest('.card');
-  const cardPlaced = el.listPlaced.closest('.card');
-  cardUnplaced.style.display = 'none';
-  cardPlaced.style.display = 'none';
-
-  let v = document.getElementById('virtualPrelievoCard');
-  if (v) v.remove();
-
-  const vCard = document.createElement('div');
-  vCard.id = 'virtualPrelievoCard';
-  vCard.className = 'card';
-
-  const h = document.createElement('h3');
-  h.className = 'section';
-  h.textContent = 'Prodotti in Prelievo';
-  vCard.appendChild(h);
-
-  const wrap = document.createElement('div');
-  const prels = products.filter(p => p.inPrelievo);
-
-  if (!prels.length){
-    const d = document.createElement('div');
-    d.className='muted';
-    d.style.padding='20px';
-    d.style.textAlign='center';
-    d.style.fontStyle='italic';
-    d.textContent='Nessun prodotto in prelievo.';
-    wrap.appendChild(d);
-  } else {
-    for (const p of prels){
-      const isPlaced = Number.isInteger(p.row) && Number.isInteger(p.col);
-      wrap.appendChild(buildItem(p, isPlaced));
-    }
-  }
-  vCard.appendChild(wrap);
-  cardUnplaced.before(vCard);
-}
-
-function restoreNormalList(){
-  const cardUnplaced = el.listUnplaced.closest('.card');
-  const cardPlaced = el.listPlaced.closest('.card');
-  cardUnplaced.style.display = '';
-  cardPlaced.style.display = '';
-  const v = document.getElementById('virtualPrelievoCard');
-  if (v) v.remove();
-}
-// ===== FINE PATCH =====
-
 export function renderList(){
-  // PATCH: pulsante prelievo sopra scaffali
-  ensurePrelievoToggle();
-  if (_prelievoMode){
-    renderPrelievoVirtualList();
-    return;
-  } else {
-    restoreNormalList();
-  }
-
   const q = (el.search.value || '').trim().toLowerCase();
   const unplaced = [];
   const placed = [];
+  const prelievo = [];
 
   for (const p of products){
     if (q){
@@ -109,12 +29,19 @@ export function renderList(){
       const l = (p.lot || '').toLowerCase();
       if (!n.includes(q) && !l.includes(q)) continue;
     }
+
+    if (p.inPrelievo) {
+      prelievo.push(p);
+      continue; // non deve comparire anche in scaffale/terra
+    }
+
     if (Number.isInteger(p.row) && Number.isInteger(p.col)) placed.push(p);
     else unplaced.push(p);
   }
 
   el.listUnplaced.textContent = '';
   el.listPlaced.textContent = '';
+  if (el.listPrelievo) el.listPrelievo.textContent = '';
 
   const buildFrag = (arr, isPlaced) => {
     const frag = document.createDocumentFragment();
@@ -123,14 +50,38 @@ export function renderList(){
   };
 
   if (!unplaced.length){
-    const d = document.createElement('div'); d.className='muted'; d.style.padding='20px'; d.style.textAlign='center'; d.style.fontStyle='italic';
-    d.textContent='Nessun prodotto in attesa di posizionamento.'; el.listUnplaced.appendChild(d);
+    const d = document.createElement('div');
+    d.className='muted';
+    d.style.padding='20px';
+    d.style.textAlign='center';
+    d.style.fontStyle='italic';
+    d.textContent='Nessun prodotto su scaffale.';
+    el.listUnplaced.appendChild(d);
   } else el.listUnplaced.appendChild(buildFrag(unplaced,false));
 
   if (!placed.length){
-    const d = document.createElement('div'); d.className='muted'; d.style.padding='20px'; d.style.textAlign='center'; d.style.fontStyle='italic';
-    d.textContent='Il magazzino è vuoto.'; el.listPlaced.appendChild(d);
+    const d = document.createElement('div');
+    d.className='muted';
+    d.style.padding='20px';
+    d.style.textAlign='center';
+    d.style.fontStyle='italic';
+    d.textContent='Nessun prodotto a terra.';
+    el.listPlaced.appendChild(d);
   } else el.listPlaced.appendChild(buildFrag(placed,true));
+
+  if (el.listPrelievo){
+    if (!prelievo.length){
+      const d = document.createElement('div');
+      d.className='muted';
+      d.style.padding='20px';
+      d.style.textAlign='center';
+      d.style.fontStyle='italic';
+      d.textContent='Nessun prodotto in prelievo.';
+      el.listPrelievo.appendChild(d);
+    } else {
+      el.listPrelievo.appendChild(buildFrag(prelievo,false));
+    }
+  }
 }
 
 function buildItem(p, isPlaced){
@@ -259,6 +210,7 @@ export function initListInteractions({switchTab, openEditDialog, chooseColumn, f
   }
   el.listUnplaced.addEventListener('click', onClick);
   el.listPlaced.addEventListener('click', onClick);
+  if (el.listPrelievo) el.listPrelievo.addEventListener('click', onClick);
 }
 
 function updateListTabs(){

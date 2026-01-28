@@ -22,6 +22,7 @@ export const el = {
   resetSearchBtn: $('resetSearchBtn'),
   listUnplaced: $('listUnplaced'),
   listPlaced: $('listPlaced'),
+  listPrelievo: $('listPrelievo'),
 
   exportPdfBtn: $('exportPdfBtn'),
   exportJsonBtn: $('exportJsonBtn'),
