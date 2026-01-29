@@ -1,10 +1,8 @@
-let activeListPage = 0;
-let touchStartX = null;
 // js/listView.js
 'use strict';
 
 import { el, showNotification } from './ui.js';
-import { products, saveProducts, saveToUndo, rebuildGridIndex } from './state.js';
+import { products, saveToUndo, commitProducts, getListFilter } from './state.js';
 import { getExpiryStatus, daysSinceProduction, daysSinceISO, giacenzaStatus } from './utils.js';
 
 export function makeBtn(cls, text, action, id){
@@ -17,31 +15,53 @@ export function makeBtn(cls, text, action, id){
   return b;
 }
 
+function setEmptyState(message){
+  if (!el.listEmptyState) return;
+  if (!message){
+    el.listEmptyState.style.display = 'none';
+    el.listEmptyState.textContent = '';
+    return;
+  }
+  el.listEmptyState.textContent = message;
+  el.listEmptyState.style.display = '';
+}
+
 export function renderList(){
+  if (!el.search || !el.listUnplaced || !el.listPlaced || !el.tpl) return;
+
   const q = (el.search.value || '').trim().toLowerCase();
+  const f = getListFilter();
+
   const unplaced = [];
   const placed = [];
-  const prelievo = [];
 
   for (const p of products){
+    if (f==='prelievo' && !p.inPrelievo) continue;
+    if (f==='terra' && (p.inPrelievo || !Number.isInteger(p.row))) continue;
+    if (f==='scaffale' && (p.inPrelievo || Number.isInteger(p.row))) continue;
+
     if (q){
       const n = (p.name || '').toLowerCase();
       const l = (p.lot || '').toLowerCase();
       if (!n.includes(q) && !l.includes(q)) continue;
     }
 
-    if (p.inPrelievo) {
-      prelievo.push(p);
-      continue; // non deve comparire anche in scaffale/terra
-    }
-
     if (Number.isInteger(p.row) && Number.isInteger(p.col)) placed.push(p);
     else unplaced.push(p);
   }
 
+  // Empty state globale (nessun prodotto / filtri senza risultati)
+  if (!products.length){
+    setEmptyState('Nessun prodotto presente. Inserisci il primo prodotto con il form qui sopra.');
+  } else if (!unplaced.length && !placed.length){
+    const label = f === 'all' ? 'con questi filtri' : `nel filtro "${f}"`;
+    setEmptyState(`Nessun risultato ${label}. Prova a cambiare filtro o a svuotare la ricerca.`);
+  } else {
+    setEmptyState('');
+  }
+
   el.listUnplaced.textContent = '';
   el.listPlaced.textContent = '';
-  if (el.listPrelievo) el.listPrelievo.textContent = '';
 
   const buildFrag = (arr, isPlaced) => {
     const frag = document.createDocumentFragment();
@@ -55,9 +75,13 @@ export function renderList(){
     d.style.padding='20px';
     d.style.textAlign='center';
     d.style.fontStyle='italic';
-    d.textContent='Nessun prodotto su scaffale.';
+    d.textContent = f === 'scaffale'
+      ? 'Nessun prodotto a scaffale (secondo i filtri attuali).'
+      : 'Nessun prodotto in attesa di posizionamento.';
     el.listUnplaced.appendChild(d);
-  } else el.listUnplaced.appendChild(buildFrag(unplaced,false));
+  } else {
+    el.listUnplaced.appendChild(buildFrag(unplaced,false));
+  }
 
   if (!placed.length){
     const d = document.createElement('div');
@@ -65,22 +89,12 @@ export function renderList(){
     d.style.padding='20px';
     d.style.textAlign='center';
     d.style.fontStyle='italic';
-    d.textContent='Nessun prodotto a terra.';
+    d.textContent = f === 'terra'
+      ? 'Nessun prodotto a terra (secondo i filtri attuali).'
+      : 'Il magazzino è vuoto.';
     el.listPlaced.appendChild(d);
-  } else el.listPlaced.appendChild(buildFrag(placed,true));
-
-  if (el.listPrelievo){
-    if (!prelievo.length){
-      const d = document.createElement('div');
-      d.className='muted';
-      d.style.padding='20px';
-      d.style.textAlign='center';
-      d.style.fontStyle='italic';
-      d.textContent='Nessun prodotto in prelievo.';
-      el.listPrelievo.appendChild(d);
-    } else {
-      el.listPrelievo.appendChild(buildFrag(prelievo,false));
-    }
+  } else {
+    el.listPlaced.appendChild(buildFrag(placed,true));
   }
 }
 
@@ -102,16 +116,26 @@ function buildItem(p, isPlaced){
   meta.textContent = 'Inserito: ' + new Date(p.dateAdded).toLocaleDateString('it-IT');
   node.querySelector('div[style="min-width:0"]').appendChild(meta);
 
-  const tagsWrap = document.createElement('div'); tagsWrap.className='tagline';
+  const tagsWrap = document.createElement('div');
+  tagsWrap.className='tagline';
+
   const exp = getExpiryStatus(p.expiryText);
   if (p.expiryText && exp){
-    const t=document.createElement('div'); t.className='tag '+exp.cls; t.textContent=exp.label; tagsWrap.appendChild(t);
+    const t=document.createElement('div');
+    t.className='tag '+exp.cls;
+    t.textContent=exp.label;
+    tagsWrap.appendChild(t);
   }
+
   const gDays = (daysSinceProduction(p) ?? daysSinceISO(p.dateAdded));
   const g = giacenzaStatus(gDays);
   if (g){
-    const t2=document.createElement('div'); t2.className='tag '+g.cls; t2.textContent=g.label; tagsWrap.appendChild(t2);
+    const t2=document.createElement('div');
+    t2.className='tag '+g.cls;
+    t2.textContent=g.label;
+    tagsWrap.appendChild(t2);
   }
+
   if (tagsWrap.childNodes.length) node.querySelector('div[style="min-width:0"]').appendChild(tagsWrap);
 
   const btns = node.querySelector('[data-btns]');
@@ -129,10 +153,16 @@ function buildItem(p, isPlaced){
 }
 
 export function initListInteractions({switchTab, openEditDialog, chooseColumn, findFirstEmptyInColumn, compactColumn, scheduleRenderAll}){
+  if (!el.listUnplaced || !el.listPlaced) return;
+
   function onClick(e){
-    const btn = e.target.closest('button'); if (!btn) return;
-    const action = btn.dataset.action; const id = btn.dataset.id;
-    const p = products.find(x => x.id === id); if (!p) return;
+    const btn = e.target.closest('button');
+    if (!btn) return;
+
+    const action = btn.dataset.action;
+    const id = btn.dataset.id;
+    const p = products.find(x => x.id === id);
+    if (!p) return;
 
     if (action === 'map'){ switchTab('mappa'); return; }
     if (action === 'edit'){ openEditDialog(id); return; }
@@ -140,16 +170,17 @@ export function initListInteractions({switchTab, openEditDialog, chooseColumn, f
     if (action === 'prel'){
       const name = (p.name||'').trim();
       if (products.some(x => x!==p && (x.name||'').trim()===name && x.inPrelievo)){
-        showNotification('Info','Prodotto già in prelievo',true); return;
+        showNotification('Info','Prodotto già in prelievo',true);
+        return;
       }
       saveToUndo();
       if (Number.isInteger(p.row) && Number.isInteger(p.col)){
-        p._prevRow = p.row; p._prevCol = p.col;
+        p._prevRow = p.row;
+        p._prevCol = p.col;
         delete p.row; delete p.col;
       }
       p.inPrelievo = true;
-      rebuildGridIndex();
-      saveProducts();
+      commitProducts();
       scheduleRenderAll();
       return;
     }
@@ -158,11 +189,11 @@ export function initListInteractions({switchTab, openEditDialog, chooseColumn, f
       saveToUndo();
       p.inPrelievo = false;
       if (Number.isInteger(p._prevRow) && Number.isInteger(p._prevCol)){
-        p.row = p._prevRow; p.col = p._prevCol;
+        p.row = p._prevRow;
+        p.col = p._prevCol;
         delete p._prevRow; delete p._prevCol;
       }
-      rebuildGridIndex();
-      saveProducts();
+      commitProducts();
       scheduleRenderAll();
       return;
     }
@@ -172,9 +203,8 @@ export function initListInteractions({switchTab, openEditDialog, chooseColumn, f
       saveToUndo();
       const oldCol = p.col;
       delete p.row; delete p.col;
-      rebuildGridIndex();
-      saveProducts();
       if (Number.isInteger(oldCol)) compactColumn(oldCol);
+      commitProducts();
       scheduleRenderAll();
       return;
     }
@@ -184,11 +214,14 @@ export function initListInteractions({switchTab, openEditDialog, chooseColumn, f
       chooseColumn().then((col)=>{
         if (col==null) return;
         const spot = findFirstEmptyInColumn(col);
-        if (!spot){ showNotification('Colonna Piena',"Scegli un'altra colonna.",false); return; }
+        if (!spot){
+          showNotification('Colonna Piena',"Scegli un'altra colonna.",false);
+          return;
+        }
         saveToUndo();
-        p.row = spot.r; p.col = col;
-        rebuildGridIndex();
-        saveProducts();
+        p.row = spot.r;
+        p.col = col;
+        commitProducts();
         scheduleRenderAll();
       });
       return;
@@ -200,52 +233,14 @@ export function initListInteractions({switchTab, openEditDialog, chooseColumn, f
         const oldCol = p.col;
         const idx = products.findIndex(x => x.id === id);
         if (idx>=0) products.splice(idx,1);
-        rebuildGridIndex();
-        saveProducts();
         if (Number.isInteger(oldCol)) compactColumn(oldCol);
+        commitProducts();
         scheduleRenderAll();
       });
       return;
     }
   }
+
   el.listUnplaced.addEventListener('click', onClick);
   el.listPlaced.addEventListener('click', onClick);
-  if (el.listPrelievo) el.listPrelievo.addEventListener('click', onClick);
 }
-
-function updateListTabs(){
-  document.querySelectorAll('.list-tabs button').forEach(btn=>{
-    btn.classList.toggle('active', Number(btn.dataset.page)===activeListPage);
-  });
-}
-
-function initListPager(){
-  const pager=document.querySelector('.list-pager');
-  const wrapper=document.querySelector('.list-pager-wrapper');
-  if(!pager||!wrapper) return;
-
-  document.querySelectorAll('.list-tabs button').forEach(btn=>{
-    btn.onclick=()=>{
-      activeListPage=Number(btn.dataset.page);
-      pager.style.transform=`translateX(-${activeListPage*100}vw)`;
-      updateListTabs();
-    };
-  });
-
-  wrapper.addEventListener('touchstart',e=>{
-    touchStartX=e.touches[0].clientX;
-  },{passive:true});
-
-  wrapper.addEventListener('touchend',e=>{
-    if(touchStartX===null) return;
-    const dx=e.changedTouches[0].clientX-touchStartX;
-    if(Math.abs(dx)>40){
-      if(dx<0&&activeListPage<2) activeListPage++;
-      if(dx>0&&activeListPage>0) activeListPage--;
-      pager.style.transform=`translateX(-${activeListPage*100}vw)`;
-      updateListTabs();
-    }
-    touchStartX=null;
-  });
-}
-initListPager();
