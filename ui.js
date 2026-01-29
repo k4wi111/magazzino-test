@@ -1,86 +1,108 @@
-// js/ui.js
+// ui.js
 'use strict';
 
 import { $ } from './utils.js';
 
-function opt(id){
-  const node = $(id);
-  return node || null;
+// Keep the same object reference across imports.
+export const el = Object.create(null);
+
+function setEl(key, id){
+  el[key] = $(id) || null;
 }
 
-// Nota: tutti i riferimenti DOM possono essere null se l'HTML cambia.
-// Il resto dell'app deve quindi controllare l'esistenza prima di usare gli elementi.
-export const el = {
-  undoBtn: opt('undoBtn'),
+export function refreshUI(){
+  // Core navigation
+  setEl('undoBtn','undoBtn');
 
-  tabLista: opt('tab-lista'),
-  tabMappa: opt('tab-mappa'),
-  tabStats: opt('tab-stats'),
-  viewLista: opt('view-lista'),
-  viewMappa: opt('view-mappa'),
-  viewStats: opt('view-stats'),
+  setEl('tabLista','tab-lista');
+  setEl('tabMappa','tab-mappa');
+  setEl('tabStats','tab-stats');
+  setEl('viewLista','view-lista');
+  setEl('viewMappa','view-mappa');
+  setEl('viewStats','view-stats');
 
-  name: opt('name'),
-  lot: opt('lot'),
-  expiry: opt('expiry'),
-  clearBtn: opt('clearBtn'),
-  saveBtn: opt('saveBtn'),
+  // Add form
+  setEl('name','name');
+  setEl('lot','lot');
+  setEl('expiry','expiry');
+  setEl('clearBtn','clearBtn');
+  setEl('saveBtn','saveBtn');
 
-  search: opt('search'),
-  resetSearchBtn: opt('resetSearchBtn'),
-  listEmptyState: opt('listEmptyState'),
-  listUnplaced: opt('listUnplaced'),
-  listPlaced: opt('listPlaced'),
+  // List
+  setEl('search','search');
+  setEl('resetSearchBtn','resetSearchBtn');
+  setEl('listEmptyState','listEmptyState');
+  setEl('listUnplaced','listUnplaced');
+  setEl('listPlaced','listPlaced');
 
-  exportPdfBtn: opt('exportPdfBtn'),
-  exportJsonBtn: opt('exportJsonBtn'),
-  importJsonFile: opt('importJsonFile'),
+  // Import/export
+  setEl('exportPdfBtn','exportPdfBtn');
+  setEl('exportJsonBtn','exportJsonBtn');
+  setEl('importJsonFile','importJsonFile');
 
-  gridFrame: opt('gridFrame'),
-  grid: opt('grid'),
-  axisTop: opt('axisTop'),
-  axisBottom: opt('axisBottom'),
-  axisLeft: opt('axisLeft'),
-  axisRight: opt('axisRight'),
-  occupiedBadge: opt('occupiedBadge'),
+  // Map
+  setEl('gridFrame','gridFrame');
+  setEl('grid','grid');
+  setEl('axisTop','axisTop');
+  setEl('axisBottom','axisBottom');
+  setEl('axisLeft','axisLeft');
+  setEl('axisRight','axisRight');
+  setEl('occupiedBadge','occupiedBadge');
 
-  cellDialog: opt('cellDialog'),
-  cellTitle: opt('cellTitle'),
-  dName: opt('dName'),
-  dLot: opt('dLot'),
-  dExpiry: opt('dExpiry'),
+  // Dialogs
+  setEl('cellDialog','cellDialog');
+  setEl('cellTitle','cellTitle');
+  setEl('dName','dName');
+  setEl('dLot','dLot');
+  setEl('dExpiry','dExpiry');
 
-  colDialog: opt('colDialog'),
-  colSelect: opt('colSelect'),
-  colCancel: opt('colCancel'),
-  colOk: opt('colOk'),
+  setEl('colDialog','colDialog');
+  setEl('colSelect','colSelect');
+  setEl('colCancel','colCancel');
+  setEl('colOk','colOk');
 
-  tpl: opt('list-item-tpl'),
-  editDialog: opt('editDialog'),
-  eName: opt('eName'),
-  eLot: opt('eLot'),
-  eExpiry: opt('eExpiry'),
-  eCancel: opt('eCancel'),
-  eSave: opt('eSave'),
+  setEl('tpl','list-item-tpl');
+  setEl('editDialog','editDialog');
+  setEl('eName','eName');
+  setEl('eLot','eLot');
+  setEl('eExpiry','eExpiry');
+  setEl('eCancel','eCancel');
+  setEl('eSave','eSave');
 
-  statsSummary: opt('statsSummary'),
-  statsTopAdded: opt('statsTopAdded'),
-  statsTopRemoved: opt('statsTopRemoved'),
-  statsAvgDwell: opt('statsAvgDwell'),
-  statsListSkull: opt('statsListSkull'),
-  statsListRed: opt('statsListRed'),
-  statsListYellow: opt('statsListYellow'),
-  statsListGreen: opt('statsListGreen'),
+  // Stats
+  setEl('statsSummary','statsSummary');
+  setEl('statsTopAdded','statsTopAdded');
+  setEl('statsTopRemoved','statsTopRemoved');
+  setEl('statsAvgDwell','statsAvgDwell');
+  setEl('statsListSkull','statsListSkull');
+  setEl('statsListRed','statsListRed');
+  setEl('statsListYellow','statsListYellow');
+  setEl('statsListGreen','statsListGreen');
 
-  modal: opt('notification-modal'),
-  modalTitle: opt('modalTitle'),
-  modalMessage: opt('modalMessage'),
-  modalConfirmBtn: opt('modalConfirmBtn'),
-  modalCancelBtn: opt('modalCancelBtn'),
+  // Modal
+  setEl('modal','notification-modal');
+  setEl('modalTitle','modalTitle');
+  setEl('modalMessage','modalMessage');
+  setEl('modalConfirmBtn','modalConfirmBtn');
+  setEl('modalCancelBtn','modalCancelBtn');
 
-  installBar: opt('installBar'),
-  installBtn: opt('installBtn'),
-};
+  // Install
+  setEl('installBar','installBar');
+  setEl('installBtn','installBtn');
+
+  return el;
+}
+
+export function checkUI(){
+  const required = ['tabLista','tabMappa','tabStats','viewLista','viewMappa','viewStats','grid','axisTop','axisLeft'];
+  const missing = required.filter(k => !el[k]);
+  if (missing.length){
+    console.warn('[IO Sano][UI] Missing DOM elements:', missing);
+  } else {
+    console.log('[IO Sano][UI] Core DOM OK');
+  }
+  return missing;
+}
 
 export function updateUndoButton(hasUndo){
   if (!el.undoBtn) return;
@@ -94,14 +116,16 @@ export function closeCellDialogSafely(){
     try { cd.close(); } catch(e) {}
     try { cd.open = false; } catch(e) {}
     cd.removeAttribute('open');
-    // workaround Safari/iOS: forzare repaint per evitare dialog "bloccato"
     cd.style.display = 'none';
     setTimeout(() => { cd.style.display = ''; }, 0);
   }catch(e){}
 }
 
 export function showNotification(title, message, isConfirm, onConfirm){
-  if (!el.modal || !el.modalTitle || !el.modalMessage || !el.modalConfirmBtn || !el.modalCancelBtn) return;
+  if (!el.modal || !el.modalTitle || !el.modalMessage || !el.modalConfirmBtn || !el.modalCancelBtn){
+    console.warn('[IO Sano] Modal missing:', title, message);
+    return;
+  }
 
   el.modalTitle.textContent = String(title ?? '');
   el.modalMessage.textContent = String(message ?? '');
@@ -123,5 +147,6 @@ export function showNotification(title, message, isConfirm, onConfirm){
     el.modalConfirmBtn.textContent = 'Chiudi';
     el.modalConfirmBtn.onclick = () => { el.modal.classList.remove('show'); };
   }
+
   el.modal.classList.add('show');
 }
