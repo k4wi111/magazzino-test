@@ -22,7 +22,11 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat .deploy-v4/chunk*.txt | tr -d '\n\r ' | base64 --decode > index.html
+          {
+            cat .deploy-v4/chunk00.txt .deploy-v4/chunk01.txt .deploy-v4/chunk02.txt .deploy-v4/chunk03.txt .deploy-v4/chunk04.txt .deploy-v4/chunk05.txt
+            head -c 6000 .deploy-v4/chunk06.txt
+            cat .deploy-v4/chunk07.txt
+          } | tr -d '\n\r ' | base64 --decode > index.html
           echo "ecb86d45f83d913878bace3b0fa6d3d1fb1da965467ecaedf6ac5f242886ad01  index.html" | sha256sum -c -
           python - <<'PY'
           from pathlib import Path
