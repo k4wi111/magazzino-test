@@ -81,10 +81,101 @@ $('#importJson').addEventListener('click',()=>$('#importFile').click());
 $('#importFile').addEventListener('change',()=>{const file=$('#importFile').files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result),arr=Array.isArray(parsed)?parsed:parsed&&Array.isArray(parsed.items)?parsed.items:null;if(!arr)throw new Error('Formato non valido');const cleaned=arr.map((x,i)=>({id:Number(x.id)||Date.now()+i,name:String(x.name||'').trim()||'Prodotto',brand:String(x.brand||''),mode:['pieces','pallet','direct'].includes(x.mode)?x.mode:'pieces',per:Math.max(0,Number(x.per)||0),pallets:Math.max(0,Number(x.pallets)||0),loose:Math.max(0,Number(x.loose)||0),qty:Math.max(0,Number(x.qty)||0),unit:String(x.unit||''),verified:!!x.verified}));if(!cleaned.length)throw new Error('Il file non contiene prodotti');if(confirm('Importare '+cleaned.length+' prodotti? I dati attuali verranno sostituiti.')){items=cleaned;save();render();alert('Importazione completata.')}}catch(err){alert('Impossibile importare il file JSON: '+err.message)}finally{$('#importFile').value=''}};r.readAsText(file)});
 function asciiText(s){return String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^\x20-\x7E]/g,'?')}
 function pdfEscape(s){return asciiText(s).replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)')}
-function wrapText(s,max=92){const words=asciiText(s).split(/\s+/),out=[];let line='';for(const w of words){if(!w)continue;const n=line?line+' '+w:w;if(n.length>max&&line){out.push(line);line=w}else line=n}if(line)out.push(line);return out}
-function productReportLine(p,i){if(p.mode==='pieces')return (i+1)+'. '+p.name+(p.brand?' - '+p.brand:'')+' | '+fmt(p.pallets)+' pallet x '+fmt(p.per)+' pz'+(p.loose?' + '+fmt(p.loose)+' sfusi':'')+' = '+fmt(total(p))+' pz | '+(p.verified?'Verificato':'Da verificare');if(p.mode==='pallet')return (i+1)+'. '+p.name+(p.brand?' - '+p.brand:'')+' | '+fmt(p.qty)+' pallet | '+(p.verified?'Verificato':'Da verificare');return (i+1)+'. '+p.name+(p.brand?' - '+p.brand:'')+' | '+fmt(p.qty)+' '+(p.unit||'unita')+' | '+(p.verified?'Verificato':'Da verificare')}
-function buildPdf(pages){const n=pages.length,fontObj=3+n*2,objs=[];objs[1]='<< /Type /Catalog /Pages 2 0 R >>';const kids=[];for(let i=0;i<n;i++)kids.push((3+i*2)+' 0 R');objs[2]='<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+n+' >>';for(let i=0;i<n;i++){const pageObj=3+i*2,contentObj=4+i*2,stream=pages[i];objs[pageObj]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 '+fontObj+' 0 R >> >> /Contents '+contentObj+' 0 R >>';objs[contentObj]='<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream'}objs[fontObj]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';let pdf='%PDF-1.4\n%1234\n',offsets=[0];for(let i=1;i<=fontObj;i++){offsets[i]=pdf.length;pdf+=i+' 0 obj\n'+objs[i]+'\nendobj\n'}const xref=pdf.length;pdf+='xref\n0 '+(fontObj+1)+'\n0000000000 65535 f \n';for(let i=1;i<=fontObj;i++)pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';pdf+='trailer\n<< /Size '+(fontObj+1)+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';return pdf}
-function exportPdfFile(){const now=new Date(),verifiedCount=items.filter(x=>x.verified).length,totalPallets=items.reduce((a,p)=>a+(p.mode==='pieces'?(+p.pallets||0):p.mode==='pallet'?(+p.qty||0):0),0),totalPieces=items.reduce((a,p)=>a+(p.mode==='pieces'?total(p):0),0);let lines=[];items.forEach((p,i)=>lines.push(...wrapText(productReportLine(p,i),92)));const perPage=53,chunks=[];for(let i=0;i<lines.length;i+=perPage)chunks.push(lines.slice(i,i+perPage));if(!chunks.length)chunks.push([]);const pages=chunks.map((chunk,idx)=>{let c='BT\n/F1 14 Tf\n50 805 Td\n(MAGAZZINO FB - INVENTARIO) Tj\n/F1 8 Tf\n0 -18 Td\n('+pdfEscape('Esportato: '+now.toLocaleString('it-IT'))+') Tj\n0 -13 Td\n('+pdfEscape('Prodotti: '+items.length+' | Verificati: '+verifiedCount+' | Pallet: '+fmt(totalPallets)+' | Pezzi calcolati: '+fmt(totalPieces)) +') Tj\n0 -13 Td\n('+pdfEscape('Pagina '+(idx+1)+' di '+chunks.length)+') Tj\n0 -18 Td\n';for(const line of chunk)c+='('+pdfEscape(line)+') Tj\n0 -11 Td\n';return c+'ET'});const pdf=buildPdf(pages);downloadBlob(new Blob([pdf],{type:'application/pdf'}),'Magazzino_FB_'+dateStamp()+'.pdf')}
+function pdfNum(n){return Math.round(n*100)/100}
+function pdfColor(c){return c.map(pdfNum).join(' ')}
+function pdfRect(x,y,w,h,fill,stroke=null,lineWidth=.5){let c='q\n';if(fill)c+=pdfColor(fill)+' rg\n';if(stroke)c+=pdfColor(stroke)+' RG\n'+lineWidth+' w\n';c+=pdfNum(x)+' '+pdfNum(y)+' '+pdfNum(w)+' '+pdfNum(h)+' re\n';c+=fill&&stroke?'B\n':fill?'f\n':'S\n';return c+'Q\n'}
+function pdfLine(x1,y1,x2,y2,color=[.82,.84,.87],width=.5){return 'q\n'+pdfColor(color)+' RG\n'+width+' w\n'+pdfNum(x1)+' '+pdfNum(y1)+' m\n'+pdfNum(x2)+' '+pdfNum(y2)+' l\nS\nQ\n'}
+function pdfText(x,y,text,size=8,bold=false,color=[.12,.15,.2],align='left'){text=asciiText(text);const approx=text.length*size*.51;let tx=x;if(align==='right')tx=x-approx;else if(align==='center')tx=x-approx/2;return 'q\n'+pdfColor(color)+' rg\nBT\n/'+(bold?'F2':'F1')+' '+size+' Tf\n'+pdfNum(tx)+' '+pdfNum(y)+' Td\n('+pdfEscape(text)+') Tj\nET\nQ\n'}
+function fitPdfText(text,maxChars){const s=asciiText(text);return s.length<=maxChars?s:s.slice(0,Math.max(1,maxChars-3))+'...'}
+function buildPdf(pages){const n=pages.length,firstFontObj=3+n*2,fontReg=firstFontObj,fontBold=firstFontObj+1,maxObj=fontBold,objs=[];objs[1]='<< /Type /Catalog /Pages 2 0 R >>';const kids=[];for(let i=0;i<n;i++)kids.push((3+i*2)+' 0 R');objs[2]='<< /Type /Pages /Kids ['+kids.join(' ')+'] /Count '+n+' >>';for(let i=0;i<n;i++){const pageObj=3+i*2,contentObj=4+i*2,stream=pages[i];objs[pageObj]='<< /Type /Page /Parent 2 0 R /MediaBox [0 0 842 595] /Resources << /Font << /F1 '+fontReg+' 0 R /F2 '+fontBold+' 0 R >> >> /Contents '+contentObj+' 0 R >>';objs[contentObj]='<< /Length '+stream.length+' >>\nstream\n'+stream+'\nendstream'}objs[fontReg]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>';objs[fontBold]='<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold >>';let pdf='%PDF-1.4\n%1234\n',offsets=[0];for(let i=1;i<=maxObj;i++){offsets[i]=pdf.length;pdf+=i+' 0 obj\n'+objs[i]+'\nendobj\n'}const xref=pdf.length;pdf+='xref\n0 '+(maxObj+1)+'\n0000000000 65535 f \n';for(let i=1;i<=maxObj;i++)pdf+=String(offsets[i]).padStart(10,'0')+' 00000 n \n';pdf+='trailer\n<< /Size '+(maxObj+1)+' /Root 1 0 R >>\nstartxref\n'+xref+'\n%%EOF';return pdf}
+function exportPdfFile(){
+  const now=new Date();
+  const verifiedCount=items.filter(x=>x.verified).length;
+  const totalPallets=items.reduce((a,p)=>a+(p.mode==='pieces'?(+p.pallets||0):p.mode==='pallet'?(+p.qty||0):0),0);
+  const totalPieces=items.reduce((a,p)=>a+(p.mode==='pieces'?total(p):0),0);
+  const pageW=842,pageH=595,margin=32,tableW=778,rowH=18;
+  const cols=[
+    {key:'name',label:'Prodotto',x:32,w:205},
+    {key:'brand',label:'Marca',x:237,w:105},
+    {key:'mode',label:'Conteggio',x:342,w:88},
+    {key:'pallet',label:'Pallet',x:430,w:58},
+    {key:'per',label:'Pz/pal',x:488,w:65},
+    {key:'loose',label:'Sfusi',x:553,w:55},
+    {key:'total',label:'Totale',x:608,w:78},
+    {key:'status',label:'Stato',x:686,w:124}
+  ];
+  const firstRows=21,otherRows=24,pagesData=[];
+  let cursor=0;
+  pagesData.push(items.slice(cursor,cursor+firstRows));cursor+=firstRows;
+  while(cursor<items.length){pagesData.push(items.slice(cursor,cursor+otherRows));cursor+=otherRows}
+  if(!pagesData.length)pagesData.push([]);
+  const navy=[.06,.09,.16],blue=[.15,.39,.92],muted=[.42,.46,.53],border=[.82,.84,.87],light=[.96,.97,.98],white=[1,1,1],greenBg=[.91,.98,.94],green=[.06,.47,.24],amberBg=[1,.97,.88],amber=[.65,.38,.02];
+  const pages=pagesData.map((rows,pageIndex)=>{
+    let c='';
+    c+=pdfRect(0,pageH-70,pageW,70,navy);
+    c+=pdfText(margin,pageH-36,'MAGAZZINO FB',21,true,white);
+    c+=pdfText(margin,pageH-52,'Inventario magazzino alternativo',9,false,[.8,.84,.9]);
+    c+=pdfText(pageW-margin,pageH-34,now.toLocaleDateString('it-IT'),10,true,white,'right');
+    c+=pdfText(pageW-margin,pageH-50,now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),8,false,[.8,.84,.9],'right');
+    let tableHeaderY;
+    if(pageIndex===0){
+      const gap=10,cardW=(tableW-gap*3)/4,cardY=468,cardH=42;
+      const cards=[
+        ['Prodotti',items.length],
+        ['Verificati',verifiedCount+' / '+items.length],
+        ['Pallet totali',fmt(totalPallets)],
+        ['Pezzi calcolati',fmt(totalPieces)]
+      ];
+      cards.forEach((card,i)=>{
+        const x=margin+i*(cardW+gap);
+        c+=pdfRect(x,cardY,cardW,cardH,white,border,.6);
+        c+=pdfText(x+10,cardY+26,String(card[1]),15,true,navy);
+        c+=pdfText(x+10,cardY+10,card[0],7.5,false,muted);
+      });
+      const progressY=455,progressW=tableW,ratio=items.length?verifiedCount/items.length:0;
+      c+=pdfRect(margin,progressY,progressW,5,[.9,.91,.93]);
+      if(ratio>0)c+=pdfRect(margin,progressY,progressW*ratio,5,blue);
+      c+=pdfText(margin,progressY-12,'Avanzamento inventario: '+Math.round(ratio*100)+'%',7.5,false,muted);
+      tableHeaderY=422;
+    }else{
+      c+=pdfText(margin,pageH-91,'Elenco prodotti - continua',9,true,navy);
+      tableHeaderY=492;
+    }
+    c+=pdfRect(margin,tableHeaderY,tableW,22,navy);
+    for(const col of cols)c+=pdfText(col.x+6,tableHeaderY+7,col.label,7.3,true,white);
+    let y=tableHeaderY-rowH;
+    rows.forEach((p,idx)=>{
+      const globalIndex=(pageIndex===0?0:firstRows+(pageIndex-1)*otherRows)+idx;
+      const fill=globalIndex%2===0?white:light;
+      c+=pdfRect(margin,y,tableW,rowH,fill,border,.35);
+      let modeShort='',pal='',per='',loose='',tot='';
+      if(p.mode==='pieces'){
+        modeShort='Completo';pal=fmt(+p.pallets||0);per=fmt(+p.per||0);loose=fmt(+p.loose||0);tot=fmt(total(p))+' pz';
+      }else if(p.mode==='pallet'){
+        modeShort='Solo pallet';pal=fmt(+p.qty||0);per='-';loose='-';tot=fmt(+p.qty||0)+' pal';
+      }else{
+        modeShort='Diretto';pal='-';per='-';loose='-';tot=fmt(+p.qty||0)+' '+(p.unit||'unita');
+      }
+      c+=pdfText(cols[0].x+6,y+6.3,fitPdfText(p.name,34),7.2,true,navy);
+      c+=pdfText(cols[1].x+6,y+6.3,fitPdfText(p.brand||'-',18),7,false,muted);
+      c+=pdfText(cols[2].x+6,y+6.3,modeShort,6.8,false,muted);
+      c+=pdfText(cols[3].x+cols[3].w-6,y+6.3,pal,7,false,navy,'right');
+      c+=pdfText(cols[4].x+cols[4].w-6,y+6.3,per,7,false,navy,'right');
+      c+=pdfText(cols[5].x+cols[5].w-6,y+6.3,loose,7,false,navy,'right');
+      c+=pdfText(cols[6].x+cols[6].w-6,y+6.3,fitPdfText(tot,14),7,true,navy,'right');
+      const statusText=p.verified?'VERIFICATO':'DA VERIFICARE',statusFill=p.verified?greenBg:amberBg,statusColor=p.verified?green:amber;
+      c+=pdfRect(cols[7].x+6,y+3,cols[7].w-12,12,statusFill,null);
+      c+=pdfText(cols[7].x+cols[7].w/2,y+6.3,statusText,6.3,true,statusColor,'center');
+      y-=rowH;
+    });
+    c+=pdfLine(margin,24,pageW-margin,24,border,.6);
+    c+=pdfText(margin,11,'Magazzino FB - Inventario magazzino alternativo',7,false,muted);
+    c+=pdfText(pageW-margin,11,'Pagina '+(pageIndex+1)+' di '+pagesData.length,7,true,muted,'right');
+    return c;
+  });
+  const pdf=buildPdf(pages);
+  downloadBlob(new Blob([pdf],{type:'application/pdf'}),'Magazzino_FB_'+dateStamp()+'.pdf');
+}
 $('#exportPdf').addEventListener('click',exportPdfFile);
 render();
 </script></body></html>
