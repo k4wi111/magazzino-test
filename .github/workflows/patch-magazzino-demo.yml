@@ -1,0 +1,62 @@
+name: Patch Magazzino FB demo
+
+on:
+  push:
+    branches: [magazzino-fb-demo]
+    paths: [update-mobile-layout.js]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: magazzino-fb-demo
+      - name: Update inventory rows and mobile dialog
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          old_css = ".name{font-weight:750}.meta{font-size:13px;color:#6b7280;margin-top:3px}.value{text-align:right;font-size:18px;font-weight:800}.ok{font-size:12px;color:#15803d}.pending{font-size:12px;color:#6b7280}"
+          new_css = ".name{font-weight:750}.meta{font-size:13px;color:#6b7280;margin-top:3px}.row-values{text-align:right;min-width:112px}.pallet-value{font-size:17px;font-weight:800}.pieces-value{font-size:14px;font-weight:700;color:#374151;margin-top:2px}.direct-value{font-size:18px;font-weight:800}.ok{font-size:12px;color:#15803d;margin-top:3px}.pending{font-size:12px;color:#6b7280;margin-top:3px}"
+          s = s.replace(old_css, new_css)
+
+          old_dialog = "dialog{border:0;border-radius:18px;padding:0;max-width:620px;width:calc(100% - 24px)}dialog::backdrop{background:rgba(15,23,42,.55)}.modal{padding:18px}"
+          new_dialog = "dialog{border:0;border-radius:18px;padding:0;max-width:620px;width:calc(100% - 24px);position:fixed;top:12px;left:0;right:0;margin:0 auto;max-height:calc(100% - 24px);overflow:auto;overscroll-behavior:contain}dialog::backdrop{background:rgba(15,23,42,.55)}.modal{padding:18px;padding-bottom:calc(18px + env(safe-area-inset-bottom))}"
+          s = s.replace(old_dialog, new_dialog)
+
+          start = s.index('function render(){')
+          end = s.index('\nfunction showFields()', start)
+          new_render = '''function render(){const q=$('#search').value.trim().toLowerCase();const arr=items.filter(p=>(!q||(p.name+' '+p.brand).toLowerCase().includes(q))&&(filter==='all'||filter==='pending'&&!p.verified||p.mode===filter));$('#list').innerHTML='';$('#count').textContent=arr.length;$('#empty').hidden=!!arr.length;for(const p of arr){const el=document.createElement('article');el.className='row';const left=document.createElement('button');left.type='button';left.innerHTML='<div class="name"></div><div class="meta"></div>';left.querySelector('.name').textContent=p.name;left.querySelector('.meta').textContent=(p.brand?p.brand+' · ':'')+modeLabel(p.mode);left.addEventListener('click',()=>openEdit(p.id));const right=document.createElement('div');right.className='row-values';const status=document.createElement('div');status.className=p.verified?'ok':'pending';status.textContent=p.verified?'✓ Verificato':'Da verificare';if(p.mode==='pieces'){const pv=document.createElement('div');pv.className='pallet-value';pv.textContent=fmt(+p.pallets||0)+' pallet';const pc=document.createElement('div');pc.className='pieces-value';pc.textContent=fmt(total(p))+' pz';right.append(pv,pc,status)}else if(p.mode==='pallet'){const pv=document.createElement('div');pv.className='pallet-value';pv.textContent=fmt(+p.qty||0)+' pallet';right.append(pv,status)}else{const dv=document.createElement('div');dv.className='direct-value';dv.textContent=fmt(total(p))+' '+unitLabel(p);right.append(dv,status)}el.append(left,right);$('#list').append(el)}stats()}'''
+          s = s[:start] + new_render + s[end:]
+
+          marker = 'function openEdit(id){'
+          helper = '''function positionDialogForKeyboard(){const d=$('#dlg');if(!d.open)return;const vv=window.visualViewport;const offsetTop=vv?vv.offsetTop:0;const height=vv?vv.height:window.innerHeight;d.style.top=Math.max(8,offsetTop+8)+'px';d.style.maxHeight=Math.max(260,height-16)+'px'}\nfunction showDialogAtTop(){const d=$('#dlg');d.showModal();requestAnimationFrame(positionDialogForKeyboard);setTimeout(positionDialogForKeyboard,120)}\n'''
+          if 'function positionDialogForKeyboard()' not in s:
+              s = s.replace(marker, helper + marker)
+
+          s = s.replace("showFields();$('#dlg').showModal()}", "showFields();showDialogAtTop()}")
+          s = s.replace("showFields();$('#dlg').showModal()});", "showFields();showDialogAtTop()});")
+
+          anchor = "$('#search').addEventListener('input',render);"
+          listeners = "if(window.visualViewport){window.visualViewport.addEventListener('resize',positionDialogForKeyboard);window.visualViewport.addEventListener('scroll',positionDialogForKeyboard)}$('#dlg').addEventListener('focusin',e=>{if(!e.target.matches('input,select,textarea'))return;setTimeout(()=>{positionDialogForKeyboard();e.target.scrollIntoView({block:'center',behavior:'smooth'})},180)});\n"
+          if 'visualViewport.addEventListener' not in s:
+              s = s.replace(anchor, listeners + anchor)
+
+          p.write_text(s, encoding='utf-8')
+      - name: Commit patch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m "Show pallets in rows and keep editor above keyboard"
+          git push origin HEAD:magazzino-fb-demo
