@@ -1,156 +1,49 @@
-name: Patch Magazzino FB demo
+name: Deploy Magazzino FB v4
 
 on:
   push:
-    branches: [magazzino-fb-demo]
-    paths: [update-mobile-layout.js]
+    branches:
+      - magazzino-fb-demo
+    paths:
+      - deploy-v4.trigger
 
 permissions:
   contents: write
 
 jobs:
-  patch:
-    if: github.actor != 'github-actions[bot]'
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: magazzino-fb-demo
-      - name: Redesign warehouse counting model
-        shell: python
+
+      - name: Rebuild app from staged chunks
+        shell: bash
         run: |
-          from pathlib import Path
-          import re
-
-          p = Path('index.html')
-          s = p.read_text(encoding='utf-8')
-
-          s = s.replace('<div class="card stat"><b id="sPieces">0</b><span>Pezzi calcolati</span></div>', '<div class="card stat"><b id="sPieces">0</b><span>Pedane diverse</span></div>')
-
-          old_filters = '''<button class="chip" data-f="pieces">Conteggio completo</button><button class="chip" data-f="pallet">Solo n° pallet</button><button class="chip" data-f="direct">Quantità diretta</button>'''
-          new_filters = '''<button class="chip" data-f="quantity">Con quantità KG/PZ</button><button class="chip" data-f="pallets">Solo pedane</button>'''
-          s = s.replace(old_filters, new_filters)
-
-          css_anchor = '.stepper{display:grid;grid-template-columns:48px 1fr 48px;gap:6px;margin-top:5px}.stepper button{font-size:22px;background:#e5e7eb}'
-          css_new = css_anchor + '''
-.partial-box{margin-top:14px;border:1px solid #dbe3ee;border-radius:14px;padding:12px;background:#f8fafc}.partial-head{display:flex;gap:8px;align-items:center;justify-content:space-between;font-size:13px;font-weight:700;color:#334155}.partial-head button{min-height:38px;padding:0 11px}.partial-list{display:grid;gap:8px;margin-top:9px}.partial-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:end}.partial-row button{min-height:46px;background:#fee2e2;color:#991b1b}.summary-calc{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.summary-calc>div{background:#eff6ff;border-radius:12px;padding:11px}.summary-calc span{display:block;font-size:11px;color:#64748b;margin-bottom:3px}.summary-calc b{font-size:17px}.um-select{font-weight:700}'''
-          s = s.replace(css_anchor, css_new)
-
-          old_modal = '''<label>Modalità di conteggio<select id="mode"><option value="pieces">Pallet completi + pezzi sfusi</option><option value="pallet">Solo numero pallet</option><option value="direct">Quantità diretta</option></select></label><div class="hint" id="modeHelp"></div>
-<div id="piecesFields"><div class="grid2"><label>Pezzi per pallet<input id="per" type="number" min="0" step="1"></label><label>N° pallet<input id="pallets" type="number" min="0" step="1"></label></div><label>Pezzi sfusi<input id="loose" type="number" min="0" step="1"></label><div class="calc">Totale: <b id="calc">0 pz</b></div></div>
-<div id="palletFields" hidden><label>Numero pallet<div class="stepper"><button type="button" id="minus">−</button><input id="qtyPallet" type="number" min="0" step="1"><button type="button" id="plus">+</button></div></label></div>
-<div id="directFields" hidden><div class="grid2"><label>Quantità<input id="qty" type="number" min="0" step="1"></label><label>Unità<input id="unit" placeholder="pz, rotoli, scatole…"></label></div></div>
-<label><input id="verified" type="checkbox" style="width:auto;min-height:auto;margin-right:7px">Prodotto verificato</label>'''
-          new_modal = '''<label>Tipo di conteggio<select id="mode"><option value="quantity">Quantità su pedane (KG/PZ)</option><option value="pallets">Solo numero pedane</option></select></label><div class="hint" id="modeHelp"></div>
-<div id="quantityFields"><div class="grid2"><label>Unità di misura<select id="um" class="um-select"><option value="PZ">PZ</option><option value="KG">KG</option></select></label><label>Quantità per pedana completa<input id="per" type="number" min="0" step="0.01"></label></div><label>N° pedane complete<div class="stepper"><button type="button" id="minusFull">−</button><input id="fullPallets" type="number" min="0" step="1"><button type="button" id="plusFull">+</button></div></label><div class="partial-box"><div class="partial-head"><span>Pedane con quantità diversa</span><button type="button" class="secondary" id="addPartial">+ Aggiungi</button></div><div class="hint">Usalo solo quando una pedana ha una quantità diversa dalla quantità standard.</div><div class="partial-list" id="partialList"></div></div><div class="summary-calc"><div><span>Pedane totali</span><b id="calcPallets">0</b></div><div><span>Quantità totale</span><b id="calcTotal">0 PZ</b></div></div></div>
-<div id="palletFields" hidden><label>Numero totale pedane<div class="stepper"><button type="button" id="minusPallet">−</button><input id="qtyPallet" type="number" min="0" step="1"><button type="button" id="plusPallet">+</button></div></label><div class="hint">Per articoli dove vuoi registrare soltanto il numero delle pedane, senza calcolare KG o PZ.</div></div>
-<label><input id="verified" type="checkbox" style="width:auto;min-height:auto;margin-right:7px">Controllato fisicamente durante l'inventario</label>'''
-          if old_modal not in s:
-              raise SystemExit('Modal block not found')
-          s = s.replace(old_modal, new_modal)
-
-          start = s.index("const KEY='magazzino-fb-demo-v1';")
-          end = s.index("if(window.visualViewport)", start)
-          core = r'''const KEY='magazzino-fb-demo-v1';
-let filter='all',editingPartials=[];
-const $=s=>document.querySelector(s),fmt=n=>new Intl.NumberFormat('it-IT',{maximumFractionDigits:2}).format(Number(n)||0);
-function cleanNum(v){return Math.max(0,Number(v)||0)}
-function normalizeUm(v){v=String(v||'').trim().toUpperCase();return v==='KG'?'KG':'PZ'}
-function migrateItem(x){
-  if(!x||typeof x!=='object')x={};
-  const base={id:Number(x.id)||Date.now()+Math.random(),name:String(x.name||'').trim()||'Prodotto',brand:String(x.brand||''),verified:!!x.verified};
-  if(x.mode==='quantity')return {...base,mode:'quantity',um:normalizeUm(x.um),per:cleanNum(x.per),fullPallets:Math.floor(cleanNum(x.fullPallets)),partials:Array.isArray(x.partials)?x.partials.map(cleanNum).filter(v=>v>=0):[] ,palletCount:0};
-  if(x.mode==='pallets')return {...base,mode:'pallets',um:'PZ',per:0,fullPallets:0,partials:[],palletCount:Math.floor(cleanNum(x.palletCount))};
-  if(x.mode==='pieces')return {...base,mode:'quantity',um:normalizeUm(x.um),per:cleanNum(x.per),fullPallets:Math.floor(cleanNum(x.pallets)),partials:cleanNum(x.loose)>0?[cleanNum(x.loose)]:[],palletCount:0};
-  if(x.mode==='direct'&&['KG','PZ'].includes(String(x.unit||'').toUpperCase()))return {...base,mode:'quantity',um:normalizeUm(x.unit),per:0,fullPallets:0,partials:cleanNum(x.qty)>0?[cleanNum(x.qty)]:[],palletCount:0};
-  return {...base,mode:'pallets',um:'PZ',per:0,fullPallets:0,partials:[],palletCount:Math.floor(cleanNum(x.qty!=null?x.qty:x.pallets))};
-}
-function cloneSeed(){return SEED.map(migrateItem)}
-function load(){try{const x=JSON.parse(localStorage.getItem(KEY));return Array.isArray(x)?x.map(migrateItem):cloneSeed()}catch{return cloneSeed()}}
-let items=load();
-function save(){localStorage.setItem(KEY,JSON.stringify(items))}
-function partialSum(p){return (p.partials||[]).reduce((a,v)=>a+cleanNum(v),0)}
-function total(p){return p.mode==='quantity'?cleanNum(p.per)*cleanNum(p.fullPallets)+partialSum(p):cleanNum(p.palletCount)}
-function physicalPallets(p){return p.mode==='quantity'?Math.floor(cleanNum(p.fullPallets))+(p.partials||[]).length:Math.floor(cleanNum(p.palletCount))}
-function differentPallets(p){return p.mode==='quantity'?(p.partials||[]).length:0}
-function modeLabel(m){return m==='quantity'?'Quantità su pedane':'Solo numero pedane'}
-function unitLabel(p){return p.mode==='quantity'?normalizeUm(p.um):'pedane'}
-function stats(){$('#sProducts').textContent=items.length;const v=items.filter(x=>x.verified).length;$('#sVerified').textContent=v;$('#bar').style.width=(items.length?v/items.length*100:0)+'%';$('#sPallets').textContent=fmt(items.reduce((a,p)=>a+physicalPallets(p),0));$('#sPieces').textContent=fmt(items.reduce((a,p)=>a+differentPallets(p),0))}
-function render(){const q=$('#search').value.trim().toLowerCase();const arr=items.filter(p=>(!q||(p.name+' '+p.brand).toLowerCase().includes(q))&&(filter==='all'||filter==='pending'&&!p.verified||p.mode===filter));$('#list').innerHTML='';$('#count').textContent=arr.length;$('#empty').hidden=!!arr.length;for(const p of arr){const el=document.createElement('article');el.className='row';const left=document.createElement('button');left.type='button';left.innerHTML='<div class="name"></div><div class="meta"></div>';left.querySelector('.name').textContent=p.name;let meta=(p.brand?p.brand+' · ':'')+modeLabel(p.mode);if(p.mode==='quantity'&&differentPallets(p))meta+=' · '+fmt(p.fullPallets)+' complete + '+differentPallets(p)+' diverse';left.querySelector('.meta').textContent=meta;left.addEventListener('click',()=>openEdit(p.id));const right=document.createElement('div');right.className='row-values';const status=document.createElement('div');status.className=p.verified?'ok':'pending';status.textContent=p.verified?'✓ Controllato':'Da controllare';if(p.mode==='quantity'){const pv=document.createElement('div');pv.className='pallet-value';pv.textContent=fmt(physicalPallets(p))+' pedane';const pc=document.createElement('div');pc.className='pieces-value';pc.textContent=fmt(total(p))+' '+normalizeUm(p.um);right.append(pv,pc,status)}else{const pv=document.createElement('div');pv.className='pallet-value';pv.textContent=fmt(p.palletCount)+' pedane';right.append(pv,status)}el.append(left,right);$('#list').append(el)}stats()}
-function showFields(){const m=$('#mode').value;$('#quantityFields').hidden=m!=='quantity';$('#palletFields').hidden=m!=='pallets';$('#modeHelp').textContent=m==='quantity'?'Per prodotti su pedana conteggiati in KG o PZ. Inserisci la quantità standard della pedana completa e, solo se serve, aggiungi le pedane con quantità diversa.':'Per articoli dove interessa soltanto il numero delle pedane.';calc()}
-function renderPartials(){const box=$('#partialList');box.innerHTML='';editingPartials.forEach((value,i)=>{const row=document.createElement('div');row.className='partial-row';const label=document.createElement('label');label.style.marginTop='0';label.textContent='Pedana diversa '+(i+1)+' ('+$('#um').value+')';const input=document.createElement('input');input.type='number';input.min='0';input.step='0.01';input.value=value;input.addEventListener('input',()=>{editingPartials[i]=cleanNum(input.value);calc()});label.appendChild(input);const remove=document.createElement('button');remove.type='button';remove.textContent='Rimuovi';remove.addEventListener('click',()=>{editingPartials.splice(i,1);renderPartials();calc()});row.append(label,remove);box.append(row)})}
-function calc(){if(!$('#calcPallets'))return;const full=Math.floor(cleanNum($('#fullPallets').value)),per=cleanNum($('#per').value),sum=editingPartials.reduce((a,v)=>a+cleanNum(v),0),um=$('#um').value;$('#calcPallets').textContent=fmt(full+editingPartials.length);$('#calcTotal').textContent=fmt(full*per+sum)+' '+um;renderPartialLabelsOnly()}
-function renderPartialLabelsOnly(){document.querySelectorAll('#partialList label').forEach((l,i)=>{const input=l.querySelector('input');const txt='Pedana diversa '+(i+1)+' ('+$('#um').value+')';if(l.firstChild&&l.firstChild.nodeType===3)l.firstChild.nodeValue=txt;else l.insertBefore(document.createTextNode(txt),input)})}
-function positionDialogForKeyboard(){const d=$('#dlg');if(!d.open)return;const vv=window.visualViewport;const offsetTop=vv?vv.offsetTop:0;const height=vv?vv.height:window.innerHeight;d.style.top=Math.max(8,offsetTop+8)+'px';d.style.maxHeight=Math.max(260,height-16)+'px'}
-function showDialogAtTop(){const d=$('#dlg');d.showModal();requestAnimationFrame(positionDialogForKeyboard);setTimeout(positionDialogForKeyboard,120)}
-function openEdit(id){const p=items.find(x=>x.id===id);if(!p)return;$('#id').value=p.id;$('#dlgTitle').textContent=p.name;$('#dlgBrand').textContent=p.brand||'Nessuna marca';$('#nameWrap').hidden=true;$('#productName').value=p.name;$('#brand').value=p.brand;$('#mode').value=p.mode;$('#um').value=normalizeUm(p.um);$('#per').value=p.per||0;$('#fullPallets').value=p.fullPallets||0;editingPartials=[...(p.partials||[])];$('#qtyPallet').value=p.palletCount||0;$('#verified').checked=!!p.verified;$('#del').hidden=false;renderPartials();showFields();showDialogAtTop()}
-$('#form').addEventListener('submit',e=>{e.preventDefault();const id=+$('#id').value;let p=items.find(x=>x.id===id);const isNew=!p;if(isNew){const newName=$('#productName').value.trim();if(!newName){alert('Inserisci il nome del prodotto.');return}p={id:Date.now(),name:newName,brand:'',mode:'quantity',um:'PZ',per:0,fullPallets:0,partials:[],palletCount:0,verified:false};items.push(p)}p.brand=$('#brand').value.trim();p.mode=$('#mode').value;p.um=normalizeUm($('#um').value);p.per=cleanNum($('#per').value);p.fullPallets=Math.floor(cleanNum($('#fullPallets').value));p.partials=editingPartials.map(cleanNum);p.palletCount=Math.floor(cleanNum($('#qtyPallet').value));p.verified=$('#verified').checked;save();$('#dlg').close();render()});
-$('#add').addEventListener('click',()=>{$('#id').value='';$('#dlgTitle').textContent='Nuovo prodotto';$('#dlgBrand').textContent='';$('#nameWrap').hidden=false;$('#productName').value='';$('#brand').value='';$('#mode').value='quantity';$('#um').value='PZ';$('#per').value=0;$('#fullPallets').value=0;editingPartials=[];$('#qtyPallet').value=0;$('#verified').checked=false;$('#del').hidden=true;renderPartials();showFields();showDialogAtTop()});
-$('#del').addEventListener('click',()=>{const id=+$('#id').value;if(id&&confirm('Eliminare questo prodotto?')){items=items.filter(x=>x.id!==id);save();$('#dlg').close();render()}});
-$('#cancel').addEventListener('click',()=>$('#dlg').close());
-$('#mode').addEventListener('change',showFields);$('#um').addEventListener('change',()=>{renderPartials();calc()});['#per','#fullPallets'].forEach(sel=>$(sel).addEventListener('input',calc));
-$('#minusFull').addEventListener('click',()=>{$('#fullPallets').value=Math.max(0,Math.floor(cleanNum($('#fullPallets').value))-1);calc()});$('#plusFull').addEventListener('click',()=>{$('#fullPallets').value=Math.floor(cleanNum($('#fullPallets').value))+1;calc()});
-$('#minusPallet').addEventListener('click',()=>$('#qtyPallet').value=Math.max(0,Math.floor(cleanNum($('#qtyPallet').value))-1));$('#plusPallet').addEventListener('click',()=>$('#qtyPallet').value=Math.floor(cleanNum($('#qtyPallet').value))+1);
-$('#addPartial').addEventListener('click',()=>{editingPartials.push(0);renderPartials();calc();setTimeout(()=>{const a=$('#partialList').querySelectorAll('input');if(a.length)a[a.length-1].focus()},0)});
-'''
-          s = s[:start] + core + s[end:]
-
-          old_export = "$('#exportJson').addEventListener('click',()=>{const data={app:'Magazzino FB',version:2,exportedAt:new Date().toISOString(),items};downloadBlob(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'Magazzino_FB_'+dateStamp()+'.json')});"
-          new_export = "$('#exportJson').addEventListener('click',()=>{const data={app:'Magazzino FB',version:3,exportedAt:new Date().toISOString(),items};downloadBlob(new Blob([JSON.stringify(data,null,2)],{type:'application/json'}),'Magazzino_FB_'+dateStamp()+'.json')});"
-          s = s.replace(old_export, new_export)
-
-          import_start = s.index("$('#importFile').addEventListener('change',()=>{")
-          import_end = s.index("\nfunction asciiText", import_start)
-          new_import = r'''$('#importFile').addEventListener('change',()=>{const file=$('#importFile').files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const parsed=JSON.parse(r.result),arr=Array.isArray(parsed)?parsed:parsed&&Array.isArray(parsed.items)?parsed.items:null;if(!arr)throw new Error('Formato non valido');const cleaned=arr.map(migrateItem);if(!cleaned.length)throw new Error('Il file non contiene prodotti');if(confirm('Importare '+cleaned.length+' prodotti? I dati attuali verranno sostituiti.')){items=cleaned;save();render();alert('Importazione completata.')}}catch(err){alert('Impossibile importare il file JSON: '+err.message)}finally{$('#importFile').value=''}};r.readAsText(file)});'''
-          s = s[:import_start] + new_import + s[import_end:]
-
-          pdf_start = s.index('function exportPdfFile(){')
-          pdf_end_marker = "$('#exportPdf').addEventListener('click',exportPdfFile);"
-          pdf_end = s.index(pdf_end_marker, pdf_start) + len(pdf_end_marker)
-          new_pdf = r'''function exportPdfFile(){
-  const now=new Date();
-  const verifiedCount=items.filter(x=>x.verified).length;
-  const totalPallets=items.reduce((a,p)=>a+physicalPallets(p),0);
-  const totalDifferent=items.reduce((a,p)=>a+differentPallets(p),0);
-  const pageW=842,pageH=595,margin=32,rowH=18;
-  const cols=[
-    {key:'name',label:'Prodotto',x:32,w:205},
-    {key:'brand',label:'Marca',x:237,w:105},
-    {key:'um',label:'UM',x:342,w:42},
-    {key:'complete',label:'Complete',x:384,w:64},
-    {key:'different',label:'Pedane diverse',x:448,w:115},
-    {key:'pallets',label:'Pedane tot.',x:563,w:68},
-    {key:'total',label:'Quantita totale',x:631,w:88},
-    {key:'status',label:'Stato',x:719,w:91}
-  ];
-  const firstRows=21,otherRows=24,pagesData=[];let cursor=0;
-  pagesData.push(items.slice(cursor,cursor+firstRows));cursor+=firstRows;while(cursor<items.length){pagesData.push(items.slice(cursor,cursor+otherRows));cursor+=otherRows}if(!pagesData.length)pagesData.push([]);
-  const navy=[.06,.09,.16],blue=[.15,.39,.92],muted=[.42,.46,.53],border=[.82,.84,.87],light=[.96,.97,.98],white=[1,1,1],greenBg=[.91,.98,.94],green=[.06,.47,.24],amberBg=[1,.97,.88],amber=[.65,.38,.02];
-  const pages=pagesData.map((rows,pageIndex)=>{let c='';c+=pdfRect(0,pageH-70,pageW,70,navy);c+=pdfText(margin,pageH-36,'MAGAZZINO FB',21,true,white);c+=pdfText(margin,pageH-52,'Inventario magazzino alternativo',9,false,[.8,.84,.9]);c+=pdfText(pageW-margin,pageH-34,now.toLocaleDateString('it-IT'),10,true,white,'right');c+=pdfText(pageW-margin,pageH-50,now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),8,false,[.8,.84,.9],'right');
-    let y=pageH-98;if(pageIndex===0){const cardY=y-42,cardW=181,gap=18;const cards=[['PRODOTTI',items.length],['CONTROLLATI',verifiedCount],['PEDANE TOTALI',fmt(totalPallets)],['PEDANE DIVERSE',fmt(totalDifferent)]];cards.forEach((card,i)=>{const x=margin+i*(cardW+gap);c+=pdfRect(x,cardY,cardW,42,white,border,.6);c+=pdfText(x+10,cardY+27,card[0],7,true,muted);c+=pdfText(x+10,cardY+10,String(card[1]),15,true,navy)});y=cardY-23;const progress=items.length?verifiedCount/items.length:0;c+=pdfText(margin,y+10,'Avanzamento inventario',7,true,muted);c+=pdfRect(margin,y-2,tableW,7,[.9,.91,.93]);if(progress>0)c+=pdfRect(margin,y-2,tableW*progress,7,blue);c+=pdfText(pageW-margin,y+9,Math.round(progress*100)+'%',8,true,blue,'right');y-=28}else y-=5;
-    c+=pdfRect(margin,y-2,778,22,navy);cols.forEach(col=>c+=pdfText(col.x+6,y+6,col.label,7,true,white));y-=20;
-    rows.forEach((p,ri)=>{const rowY=y-rowH;if(ri%2===1)c+=pdfRect(margin,rowY,778,rowH,light);c+=pdfLine(margin,rowY,810,rowY,border,.35);const partials=p.mode==='quantity'?(p.partials||[]):[];const different=partials.length?partials.map(v=>fmt(v)).join(' + '):'-';const values={name:fitPdfText(p.name,35),brand:fitPdfText(p.brand||'-',17),um:p.mode==='quantity'?normalizeUm(p.um):'-',complete:p.mode==='quantity'?fmt(p.fullPallets):'-',different:fitPdfText(different,18),pallets:fmt(physicalPallets(p)),total:p.mode==='quantity'?fitPdfText(fmt(total(p))+' '+normalizeUm(p.um),15):'-',status:p.verified?'CONTROLLATO':'DA CONTROLLARE'};c+=pdfText(cols[0].x+6,rowY+6,values.name,7.2,true,navy);c+=pdfText(cols[1].x+6,rowY+6,values.brand,7,false,muted);c+=pdfText(cols[2].x+cols[2].w/2,rowY+6,values.um,7,true,navy,'center');c+=pdfText(cols[3].x+cols[3].w-6,rowY+6,values.complete,7,false,navy,'right');c+=pdfText(cols[4].x+6,rowY+6,values.different,7,false,navy);c+=pdfText(cols[5].x+cols[5].w-6,rowY+6,values.pallets,7,true,navy,'right');c+=pdfText(cols[6].x+cols[6].w-6,rowY+6,values.total,7,true,navy,'right');const bg=p.verified?greenBg:amberBg,fg=p.verified?green:amber;c+=pdfRect(cols[7].x+5,rowY+3,cols[7].w-10,12,bg);c+=pdfText(cols[7].x+cols[7].w/2,rowY+6,values.status,6.2,true,fg,'center');y-=rowH});
-    c+=pdfLine(margin,35,810,35,border,.5);c+=pdfText(margin,20,'Pedane diverse = pedane con quantita differente dalla quantita standard.',6.5,false,muted);c+=pdfText(pageW-margin,20,'Pagina '+(pageIndex+1)+' di '+pagesData.length,6.5,false,muted,'right');return c});const pdf=buildPdf(pages);downloadBlob(new Blob([pdf],{type:'application/pdf'}),'Magazzino_FB_'+dateStamp()+'.pdf')}
-$('#exportPdf').addEventListener('click',exportPdfFile);'''
-          s = s[:pdf_start] + new_pdf + s[pdf_end:]
-
-          p.write_text(s, encoding='utf-8')
-
-      - name: Verify JavaScript
-        run: |
+          set -euo pipefail
+          cat .deploy-v4/chunk*.txt | tr -d '\n\r ' | base64 --decode > index.html
+          echo "ecb86d45f83d913878bace3b0fa6d3d1fb1da965467ecaedf6ac5f242886ad01  index.html" | sha256sum -c -
           python - <<'PY'
           from pathlib import Path
           import re
-          s=Path('index.html').read_text(encoding='utf-8')
-          js=re.search(r'<script>([\s\S]*)</script>',s).group(1)
-          Path('/tmp/app.js').write_text(js,encoding='utf-8')
+          s = Path('index.html').read_text(encoding='utf-8')
+          m = re.search(r'<script>([\s\S]*)</script>', s)
+          if not m:
+              raise SystemExit('Script block not found')
+          Path('/tmp/magazzino-app.js').write_text(m.group(1), encoding='utf-8')
           PY
-          node --check /tmp/app.js
-      - name: Commit patch
+          node --check /tmp/magazzino-app.js
+
+      - name: Commit redesigned app
+        shell: bash
         run: |
+          set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
-          if git diff --cached --quiet; then exit 0; fi
+          if git diff --cached --quiet; then
+            exit 0
+          fi
           git commit -m "Redesign pallet quantity counting"
           git push origin HEAD:magazzino-fb-demo
