@@ -1,11 +1,11 @@
-name: Patch Magazzino FB v5
+name: Patch Magazzino FB v6
 
 on:
   push:
     branches:
       - magazzino-fb-demo
     paths:
-      - patch-v5.trigger
+      - patch-v6.trigger
 
 permissions:
   contents: write
@@ -18,7 +18,7 @@ jobs:
         with:
           ref: magazzino-fb-demo
 
-      - name: Add additional quantity and pending checkbox
+      - name: Redesign verification checkbox
         shell: python
         run: |
           from pathlib import Path
@@ -33,86 +33,73 @@ jobs:
                   raise SystemExit(f'{label}: pattern not found')
               s = s.replace(old, new, 1)
 
+          css_anchor = '.pending{font-size:12px;color:#6b7280;margin-top:3px}'
+          css_new = css_anchor + '#verified{accent-color:#16a34a}.verify-state{display:inline;font-weight:650;color:#6b7280}.verify-state.verified{color:#15803d}'
+          replace_once(css_anchor, css_new, 'verification css')
+
           replace_once(
-              '</div></label><div class="partial-box"><div class="partial-head"><span>Pedane con quantità diversa</span>',
-              '</div></label><label>Quantità aggiuntiva<input id="additional" type="number" min="0" step="0.01"></label><div class="hint">KG/PZ in più rispetto alla quantità standard delle pedane complete. Non aggiunge una nuova pedana.</div><div class="partial-box"><div class="partial-head"><span>Pedane con quantità diversa</span>',
-              'additional field'
+              '<button class="chip" data-f="pending">Da verificare</button>',
+              '<button class="chip" data-f="pending">Non verificati</button>',
+              'pending filter label'
           )
+
           replace_once(
-              '<label><input id="verified" type="checkbox" style="width:auto;min-height:auto;margin-right:7px">Controllato fisicamente durante l\'inventario</label>',
               '<label><input id="verified" type="checkbox" style="width:auto;min-height:auto;margin-right:7px">Da verificare</label>',
-              'pending label'
+              '<label><input id="verified" type="checkbox" style="width:auto;min-height:auto;margin-right:7px"><span id="verifyText" class="verify-state">Non verificato</span></label>',
+              'verification control'
           )
+
           replace_once(
-              "if(x.mode==='quantity')return {...base,mode:'quantity',um:normalizeUm(x.um),per:cleanNum(x.per),fullPallets:Math.floor(cleanNum(x.fullPallets)),partials:Array.isArray(x.partials)?x.partials.map(cleanNum):[],palletCount:0};",
-              "if(x.mode==='quantity')return {...base,mode:'quantity',um:normalizeUm(x.um),per:cleanNum(x.per),fullPallets:Math.floor(cleanNum(x.fullPallets)),additional:cleanNum(x.additional),partials:Array.isArray(x.partials)?x.partials.map(cleanNum):[],palletCount:0};",
-              'quantity migration'
+              "status.textContent=p.verified?'✓ Verificato':'Da verificare';",
+              "status.textContent=p.verified?'☑ Verificato':'☐ Non verificato';",
+              'row verification text'
           )
-          s = s.replace("mode:'pallets',um:'PZ',per:0,fullPallets:0,partials:[],palletCount:", "mode:'pallets',um:'PZ',per:0,fullPallets:0,additional:0,partials:[],palletCount:")
+
+          marker = 'function positionDialogForKeyboard(){'
+          helper = "function updateVerifyLabel(){const c=$('#verified'),t=$('#verifyText');if(!c||!t)return;t.textContent=c.checked?'Verificato':'Non verificato';t.classList.toggle('verified',c.checked)}\n"
+          if helper.strip() not in s:
+              replace_once(marker, helper + marker, 'verification helper')
+
           replace_once(
-              "if(x.mode==='pieces')return {...base,mode:'quantity',um:normalizeUm(x.um),per:cleanNum(x.per),fullPallets:Math.floor(cleanNum(x.pallets)),partials:cleanNum(x.loose)>0?[cleanNum(x.loose)]:[],palletCount:0};",
-              "if(x.mode==='pieces')return {...base,mode:'quantity',um:normalizeUm(x.um),per:cleanNum(x.per),fullPallets:Math.floor(cleanNum(x.pallets)),additional:cleanNum(x.loose),partials:[],palletCount:0};",
-              'legacy loose migration'
+              "$('#qtyPallet').value=p.palletCount||0;$('#verified').checked=!p.verified;$('#del').hidden=false;renderPartials();showFields();showDialogAtTop()}",
+              "$('#qtyPallet').value=p.palletCount||0;$('#verified').checked=false;updateVerifyLabel();$('#del').hidden=false;renderPartials();showFields();showDialogAtTop()}",
+              'edit checkbox default'
           )
+
           replace_once(
-              "if(x.mode==='direct'&&['KG','PZ'].includes(String(x.unit||'').toUpperCase()))return {...base,mode:'quantity',um:normalizeUm(x.unit),per:0,fullPallets:0,partials:cleanNum(x.qty)>0?[cleanNum(x.qty)]:[],palletCount:0};",
-              "if(x.mode==='direct'&&['KG','PZ'].includes(String(x.unit||'').toUpperCase()))return {...base,mode:'quantity',um:normalizeUm(x.unit),per:0,fullPallets:0,additional:cleanNum(x.qty),partials:[],palletCount:0};",
-              'legacy direct migration'
+              "p.palletCount=Math.floor(cleanNum($('#qtyPallet').value));p.verified=!$('#verified').checked;save();",
+              "p.palletCount=Math.floor(cleanNum($('#qtyPallet').value));p.verified=$('#verified').checked;save();",
+              'save verified state'
           )
+
           replace_once(
-              "function total(p){return p.mode==='quantity'?cleanNum(p.per)*cleanNum(p.fullPallets)+partialSum(p):cleanNum(p.palletCount)}",
-              "function total(p){return p.mode==='quantity'?cleanNum(p.per)*cleanNum(p.fullPallets)+cleanNum(p.additional)+partialSum(p):cleanNum(p.palletCount)}",
-              'total formula'
+              "$('#qtyPallet').value=0;$('#verified').checked=true;$('#del').hidden=true;renderPartials();showFields();showDialogAtTop()});",
+              "$('#qtyPallet').value=0;$('#verified').checked=false;updateVerifyLabel();$('#del').hidden=true;renderPartials();showFields();showDialogAtTop()});",
+              'new checkbox default'
           )
+
+          listener_anchor = "$('#mode').addEventListener('change',showFields);"
+          listener = "$('#verified').addEventListener('change',updateVerifyLabel);"
+          if listener not in s:
+              replace_once(listener_anchor, listener_anchor + listener, 'verification change listener')
+
           replace_once(
-              "if(p.mode==='quantity'&&differentPallets(p))meta+=' · '+fmt(p.fullPallets)+' complete + '+differentPallets(p)+' diverse';",
-              "if(p.mode==='quantity'&&differentPallets(p))meta+=' · '+fmt(p.fullPallets)+' complete + '+differentPallets(p)+' diverse';if(p.mode==='quantity'&&cleanNum(p.additional)>0)meta+=' · +'+fmt(p.additional)+' '+normalizeUm(p.um)+' aggiuntivi';",
-              'row meta'
+              "status:p.verified?'VERIFICATO':'DA VERIFICARE'",
+              "status:p.verified?'VERIFICATO':'NON VERIFICATO'",
+              'pdf verification label'
           )
-          replace_once("status.textContent=p.verified?'✓ Controllato':'Da controllare';", "status.textContent=p.verified?'✓ Verificato':'Da verificare';", 'row status')
-          replace_once(
-              'Per prodotti su pedana conteggiati in KG o PZ. Inserisci la quantità standard della pedana completa e, solo se serve, aggiungi le pedane con quantità diversa.',
-              'Per prodotti su pedana conteggiati in KG o PZ. Inserisci la quantità standard, le pedane complete, la quantità aggiuntiva eventuale e, solo se serve, le pedane con quantità diversa.',
-              'help text'
-          )
-          replace_once(
-              "const full=Math.floor(cleanNum($('#fullPallets').value)),per=cleanNum($('#per').value),sum=editingPartials.reduce((a,v)=>a+cleanNum(v),0),um=$('#um').value;$('#calcPallets').textContent=fmt(full+editingPartials.length);$('#calcTotal').textContent=fmt(full*per+sum)+' '+um",
-              "const full=Math.floor(cleanNum($('#fullPallets').value)),per=cleanNum($('#per').value),additional=cleanNum($('#additional').value),sum=editingPartials.reduce((a,v)=>a+cleanNum(v),0),um=$('#um').value;$('#calcPallets').textContent=fmt(full+editingPartials.length);$('#calcTotal').textContent=fmt(full*per+additional+sum)+' '+um",
-              'live calculation'
-          )
-          replace_once(
-              "$('#fullPallets').value=p.fullPallets||0;editingPartials=[...(p.partials||[])];$('#qtyPallet').value=p.palletCount||0;$('#verified').checked=!!p.verified;",
-              "$('#fullPallets').value=p.fullPallets||0;$('#additional').value=p.additional||0;editingPartials=[...(p.partials||[])];$('#qtyPallet').value=p.palletCount||0;$('#verified').checked=!p.verified;",
-              'edit values'
-          )
-          replace_once(
-              "p={id:Date.now(),name:newName,brand:'',mode:'quantity',um:'PZ',per:0,fullPallets:0,partials:[],palletCount:0,verified:false};",
-              "p={id:Date.now(),name:newName,brand:'',mode:'quantity',um:'PZ',per:0,fullPallets:0,additional:0,partials:[],palletCount:0,verified:false};",
-              'new item defaults'
-          )
-          replace_once(
-              "p.fullPallets=Math.floor(cleanNum($('#fullPallets').value));p.partials=editingPartials.map(cleanNum);p.palletCount=Math.floor(cleanNum($('#qtyPallet').value));p.verified=$('#verified').checked;",
-              "p.fullPallets=Math.floor(cleanNum($('#fullPallets').value));p.additional=cleanNum($('#additional').value);p.partials=editingPartials.map(cleanNum);p.palletCount=Math.floor(cleanNum($('#qtyPallet').value));p.verified=!$('#verified').checked;",
-              'save values'
-          )
-          replace_once(
-              "$('#fullPallets').value=0;editingPartials=[];$('#qtyPallet').value=0;$('#verified').checked=false;",
-              "$('#fullPallets').value=0;$('#additional').value=0;editingPartials=[];$('#qtyPallet').value=0;$('#verified').checked=true;",
-              'new dialog defaults'
-          )
-          replace_once("['#per','#fullPallets'].forEach(sel=>$(sel).addEventListener('input',calc));", "['#per','#fullPallets','#additional'].forEach(sel=>$(sel).addEventListener('input',calc));", 'calc listener')
-          replace_once("version:3,exportedAt", "version:4,exportedAt", 'json version')
-          replace_once("status:p.verified?'CONTROLLATO':'DA CONTROLLARE'", "status:p.verified?'VERIFICATO':'DA VERIFICARE'", 'pdf status')
+
+          replace_once('version:4,exportedAt', 'version:5,exportedAt', 'json version')
 
           p.write_text(s, encoding='utf-8')
 
           m = re.search(r'<script>([\s\S]*)</script>', s)
           if not m:
               raise SystemExit('script block missing')
-          Path('/tmp/magazzino-v5.js').write_text(m.group(1), encoding='utf-8')
+          Path('/tmp/magazzino-v6.js').write_text(m.group(1), encoding='utf-8')
 
       - name: Check JavaScript
-        run: node --check /tmp/magazzino-v5.js
+        run: node --check /tmp/magazzino-v6.js
 
       - name: Commit patch
         shell: bash
@@ -122,5 +109,5 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add index.html
           if git diff --cached --quiet; then exit 0; fi
-          git commit -m "Add additional quantity and pending status"
+          git commit -m "Redesign verification checkbox"
           git push origin HEAD:magazzino-fb-demo
