@@ -1,0 +1,95 @@
+name: Fix Xiaomi Android icon v6
+
+on:
+  push:
+    branches:
+      - magazzino-fb-demo
+    paths:
+      - xiaomi-icon-v6.trigger
+
+permissions:
+  contents: write
+
+jobs:
+  fix-icon:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: magazzino-fb-demo
+
+      - name: Build safer Android icons
+        run: |
+          python -m pip install --quiet pillow
+          python - <<'PY'
+          from PIL import Image
+          from pathlib import Path
+
+          src = Image.open('icons/icon-512.png').convert('RGB')
+          bg = (145, 145, 145)
+
+          # Xiaomi/Android safe layout: shrink artwork and keep a generous grey margin.
+          size = 512
+          inner = round(size * 0.74)
+          canvas = Image.new('RGB', (size, size), bg)
+          artwork = src.resize((inner, inner), Image.Resampling.LANCZOS)
+          offset = (size - inner) // 2
+          canvas.paste(artwork, (offset, offset))
+          canvas.save('icons/icon-512.png', 'PNG', optimize=True)
+
+          icon192 = canvas.resize((192, 192), Image.Resampling.LANCZOS)
+          icon192.save('icons/icon-192.png', 'PNG', optimize=True)
+          PY
+
+      - name: Update manifest, page and cache
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import json, re
+
+          mp = Path('manifest.webmanifest')
+          manifest = json.loads(mp.read_text(encoding='utf-8'))
+          manifest['background_color'] = '#919191'
+          for icon in manifest.get('icons', []):
+              if 'icon-192.png' in icon.get('src',''):
+                  icon['src'] = 'icons/icon-192.png?v=6'
+                  icon['purpose'] = 'any'
+              elif 'icon-512.png' in icon.get('src',''):
+                  icon['src'] = 'icons/icon-512.png?v=6'
+                  icon['purpose'] = 'any'
+          mp.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          s = s.replace('manifest.webmanifest?v=5', 'manifest.webmanifest?v=6')
+          s = s.replace('icon-192.png?v=5', 'icon-192.png?v=6')
+          # Keep the Apple icon visually unchanged; only bump its URL so browsers refresh metadata.
+          s = s.replace('apple-touch-icon.png?v=5', 'apple-touch-icon.png?v=6')
+          p.write_text(s, encoding='utf-8')
+
+          swp = Path('service-worker.js')
+          sw = swp.read_text(encoding='utf-8')
+          sw = re.sub(r"const CACHE_NAME = 'magazzino-fb-pwa-v\d+';", "const CACHE_NAME = 'magazzino-fb-pwa-v6';", sw)
+          swp.write_text(sw, encoding='utf-8')
+          PY
+
+      - name: Validate icons
+        run: |
+          python - <<'PY'
+          from PIL import Image
+          for path, expected in [('icons/icon-512.png',(512,512)), ('icons/icon-192.png',(192,192)), ('icons/apple-touch-icon.png',(180,180))]:
+              im = Image.open(path)
+              im.verify()
+              im = Image.open(path)
+              assert im.size == expected, (path, im.size)
+              print(path, im.size, 'OK')
+          PY
+
+      - name: Commit Android icon fix
+        run: |
+          rm -f xiaomi-icon-v6.trigger .github/workflows/fix-xiaomi-icon-v6.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Fix Android Xiaomi icon scaling"
+          git push origin HEAD:magazzino-fb-demo
