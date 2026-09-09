@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Magazzino FB Demo</title><meta name="theme-color" content="#0f172a">
+<title>Magazzino FB</title><meta name="theme-color" content="#0f172a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Magazzino FB">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="icon" type="image/png" href="./icons/icon-512.png">
+<link rel="apple-touch-icon" href="./icons/icon-512.png">
 <style>
 *{box-sizing:border-box}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f3f4f6;color:#111827}
 header{background:#0f172a;color:#fff;padding:18px 16px;position:sticky;top:0;z-index:4}header h1{margin:0;font-size:24px}header p{margin:4px 0 0;color:#cbd5e1;font-size:13px}
@@ -20,7 +26,7 @@ dialog{border:0;border-radius:18px;padding:0;max-width:620px;width:calc(100% - 2
 .badge{display:inline-block;padding:3px 7px;border-radius:99px;background:#f3f4f6;font-size:11px;margin-left:5px}
 @media(max-width:650px){.stats{grid-template-columns:repeat(2,1fr)}.tools{grid-template-columns:1fr}.data-tools{display:grid;grid-template-columns:1fr 1fr}.data-tools button{width:100%}.grid2{grid-template-columns:1fr}.row{grid-template-columns:minmax(0,1fr) auto}}
 </style></head><body>
-<header><h1>Magazzino FB</h1><p>Demo inventario magazzino alternativo · dati iniziali dal file Excel</p></header>
+<header><h1>Magazzino FB</h1><p>Inventario magazzino alternativo · versione base di test</p></header>
 <main>
 <section class="stats">
 <div class="card stat"><b id="sProducts">0</b><span>Prodotti</span></div>
@@ -35,7 +41,7 @@ dialog{border:0;border-radius:18px;padding:0;max-width:620px;width:calc(100% - 2
 <button class="chip active" data-f="all">Tutti</button><button class="chip" data-f="pending">Non verificati</button>
 <button class="chip" data-f="quantity">Con quantità KG/PZ</button><button class="chip" data-f="pallets">Solo pedane</button>
 </div>
-<div class="section-title"><h2>Prodotti <span class="badge" id="count"></span></h2><button class="secondary" id="reset">Ripristina demo</button></div>
+<div class="section-title"><h2>Prodotti <span class="badge" id="count"></span></h2><button class="secondary" id="reset">Ripristina dati iniziali</button></div>
 <section class="list" id="list"></section><div id="empty" class="empty" hidden>Nessun prodotto trovato.</div>
 </main>
 <dialog id="dlg"><form class="modal" id="form">
@@ -108,4 +114,11 @@ function exportPdfFile(){
   const pages=pagesData.map((rows,pageIndex)=>{let c='';c+=pdfRect(0,pageH-70,pageW,70,navy);c+=pdfText(margin,pageH-36,'MAGAZZINO FB',21,true,white);c+=pdfText(margin,pageH-52,'Inventario magazzino alternativo',9,false,[.8,.84,.9]);c+=pdfText(pageW-margin,pageH-34,now.toLocaleDateString('it-IT'),10,true,white,'right');c+=pdfText(pageW-margin,pageH-50,now.toLocaleTimeString('it-IT',{hour:'2-digit',minute:'2-digit'}),8,false,[.8,.84,.9],'right');let y=pageH-98;if(pageIndex===0){const cardY=y-42,cardW=181,gap=18,cards=[['PRODOTTI',items.length],['CONTROLLATI',verifiedCount],['PEDANE TOTALI',fmt(totalPallets)],['PEDANE DIVERSE',fmt(totalDifferent)]];cards.forEach((card,i)=>{const x=margin+i*(cardW+gap);c+=pdfRect(x,cardY,cardW,42,white,border,.6);c+=pdfText(x+10,cardY+27,card[0],7,true,muted);c+=pdfText(x+10,cardY+10,String(card[1]),15,true,navy)});y=cardY-23;const progress=items.length?verifiedCount/items.length:0;c+=pdfText(margin,y+10,'Avanzamento inventario',7,true,muted);c+=pdfRect(margin,y-2,tableW,7,[.9,.91,.93]);if(progress>0)c+=pdfRect(margin,y-2,tableW*progress,7,blue);c+=pdfText(pageW-margin,y+9,Math.round(progress*100)+'%',8,true,blue,'right');y-=28}else y-=5;c+=pdfRect(margin,y-2,778,22,navy);cols.forEach(col=>c+=pdfText(col.x+6,y+6,col.label,7,true,white));y-=20;rows.forEach((p,ri)=>{const rowY=y-rowH;if(ri%2===1)c+=pdfRect(margin,rowY,778,rowH,light);c+=pdfLine(margin,rowY,810,rowY,border,.35);const partials=p.mode==='quantity'?(p.partials||[]):[],different=partials.length?partials.map(v=>fmt(v)).join(' + '):'-',values={name:fitPdfText(p.name,35),brand:fitPdfText(p.brand||'-',17),um:p.mode==='quantity'?normalizeUm(p.um):'-',complete:p.mode==='quantity'?fmt(p.fullPallets):'-',different:fitPdfText(different,18),pallets:fmt(physicalPallets(p)),total:p.mode==='quantity'?fitPdfText(fmt(total(p))+' '+normalizeUm(p.um),15):'-',status:p.verified?'VERIFICATO':'NON VERIFICATO'};c+=pdfText(cols[0].x+6,rowY+6,values.name,7.2,true,navy);c+=pdfText(cols[1].x+6,rowY+6,values.brand,7,false,muted);c+=pdfText(cols[2].x+cols[2].w/2,rowY+6,values.um,7,true,navy,'center');c+=pdfText(cols[3].x+cols[3].w-6,rowY+6,values.complete,7,false,navy,'right');c+=pdfText(cols[4].x+6,rowY+6,values.different,7,false,navy);c+=pdfText(cols[5].x+cols[5].w-6,rowY+6,values.pallets,7,true,navy,'right');c+=pdfText(cols[6].x+cols[6].w-6,rowY+6,values.total,7,true,navy,'right');const bg=p.verified?greenBg:amberBg,fg=p.verified?green:amber;c+=pdfRect(cols[7].x+5,rowY+3,cols[7].w-10,12,bg);c+=pdfText(cols[7].x+cols[7].w/2,rowY+6,values.status,6.2,true,fg,'center');y-=rowH});c+=pdfLine(margin,35,810,35,border,.5);c+=pdfText(margin,20,'Pedane diverse = pedane con quantita differente dalla quantita standard.',6.5,false,muted);c+=pdfText(pageW-margin,20,'Pagina '+(pageIndex+1)+' di '+pagesData.length,6.5,false,muted,'right');return c});const pdf=buildPdf(pages);downloadBlob(new Blob([pdf],{type:'application/pdf'}),'Magazzino_FB_'+dateStamp()+'.pdf')}
 $('#exportPdf').addEventListener('click',exportPdfFile);
 render();
-</script></body></html>
+</script><script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./service-worker.js').catch(err => console.warn('Service worker:', err));
+  });
+}
+</script>
+</body></html>
