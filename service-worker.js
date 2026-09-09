@@ -1,9 +1,11 @@
-const CACHE_NAME = 'magazzino-fb-pwa-v1';
+const CACHE_NAME = 'magazzino-fb-pwa-v3';
 const CORE = [
   './',
   './index.html',
   './manifest.webmanifest',
-  './icons/icon-512.png'
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', event => {
