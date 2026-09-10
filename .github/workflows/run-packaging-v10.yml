@@ -1,0 +1,29 @@
+name: Packaging v10
+
+on:
+  push:
+    branches:
+      - magazzino-fb-demo
+    paths:
+      - .trigger-packaging-v10c
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: magazzino-fb-demo
+          fetch-depth: 0
+      - name: Apply patch
+        run: python3 scripts/patch_packaging_v10.py
+      - name: Commit
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html service-worker.js
+          git commit -m "Add compact cartons and sacks fields"
+          git push origin HEAD:magazzino-fb-demo
