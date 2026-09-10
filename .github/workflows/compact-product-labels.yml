@@ -1,0 +1,46 @@
+name: Compact product editor labels
+
+on:
+  push:
+    branches:
+      - magazzino-fb-demo
+    paths:
+      - '.github/compact-labels-trigger-*'
+
+permissions:
+  contents: write
+
+jobs:
+  update-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: magazzino-fb-demo
+      - name: Shorten product editor labels
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          replacements = {
+              'Quantità su pedane (KG/PZ)': 'Quantità (KG/PZ)',
+              'Quantità per pedana completa': 'Q.tà per pedana',
+              'N° pedane complete': 'Pedane complete',
+              'Quantità aggiuntiva': 'Q.tà aggiuntiva',
+              'Pedane con quantità diversa': 'Pedane diverse',
+          }
+          for old, new in replacements.items():
+              s = s.replace(old, new)
+          p.write_text(s, encoding='utf-8')
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          if git diff --cached --quiet; then
+            echo "No changes needed"
+          else
+            git commit -m "Shorten product editor labels"
+            git push origin magazzino-fb-demo
+          fi
