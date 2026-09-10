@@ -1,0 +1,57 @@
+name: Update verify label v9
+
+on:
+  push:
+    branches:
+      - magazzino-fb-demo
+
+permissions:
+  contents: write
+
+jobs:
+  update:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: magazzino-fb-demo
+          fetch-depth: 0
+
+      - name: Update verify labels
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          replacements = {
+              '<span id="verifyText" class="verify-state">Non verificato</span>': '<span id="verifyText" class="verify-state">Verifica</span>',
+              "t.textContent=c.checked?'Verificato':'Non verificato'": "t.textContent=c.checked?'Verificato':'Verifica'",
+              "status.textContent=p.verified?'☑ Verificato':'☐ Non verificato'": "status.textContent=p.verified?'☑ Verificato':'☐ Verifica'",
+          }
+          for old, new in replacements.items():
+              if old not in s:
+                  raise SystemExit(f'Missing expected text: {old}')
+              s = s.replace(old, new)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Bump PWA cache
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('service-worker.js')
+          s = p.read_text(encoding='utf-8')
+          if "magazzino-fb-pwa-v8" not in s:
+              raise SystemExit('Expected v8 cache not found')
+          s = s.replace("magazzino-fb-pwa-v8", "magazzino-fb-pwa-v9")
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Commit changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html service-worker.js
+          git commit -m "Use clearer Verify and Verified states" || exit 0
+          git push origin magazzino-fb-demo
