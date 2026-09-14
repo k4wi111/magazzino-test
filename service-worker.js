@@ -1,4 +1,4 @@
-const CACHE_NAME = 'magazzino-fb-pwa-v12';
+const CACHE_NAME = 'magazzino-fb-pwa-v13';
 const CORE = [
   './',
   './index.html',
