@@ -1,0 +1,18 @@
+{
+  "id": "/rabbocchi/",
+  "name": "Rabbocchi Acqua Muletti",
+  "short_name": "Rabbocchi",
+  "description": "Gestione rabbocchi acqua, manutenzioni e problemi dei muletti",
+  "start_url": "/rabbocchi/",
+  "scope": "/rabbocchi/",
+  "display": "standalone",
+  "background_color": "#f4f7fb",
+  "theme_color": "#0f172a",
+  "lang": "it",
+  "orientation": "any",
+  "prefer_related_applications": false,
+  "icons": [
+    {"src":"/rabbocchi/icons/icon-192x192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"/rabbocchi/icons/icon-512x512.png","sizes":"512x512","type":"image/png","purpose":"any"}
+  ]
+}

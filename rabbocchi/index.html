@@ -1,0 +1,288 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Rabbocchi Muletti" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="icon" href="./icons/favicon.png" type="image/png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <title>Rabbocchi Acqua Muletti</title>
+  <style>
+    :root{--bg:#f4f7fb;--card:#fff;--text:#0f172a;--muted:#64748b;--line:#dbe2ea;--brand:#0f172a;--green:#15803d;--green-bg:#dcfce7;--yellow:#a16207;--yellow-bg:#fef3c7;--red:#b91c1c;--red-bg:#fee2e2;--gray:#475569;--gray-bg:#e2e8f0;--blue:#1d4ed8;--blue-bg:#dbeafe;--orange:#c2410c;--orange-bg:#ffedd5;--purple:#7e22ce;--purple-bg:#f3e8ff;--shadow:0 8px 24px rgba(15,23,42,.08)}
+    *{box-sizing:border-box} html{background:var(--bg)} body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text)} button,input,select,textarea{font:inherit} button{cursor:pointer}
+    header{position:sticky;top:0;z-index:30;background:rgba(15,23,42,.97);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;box-shadow:0 2px 16px rgba(15,23,42,.22)}
+    .head{max-width:1180px;margin:auto;display:flex;align-items:center;gap:12px;justify-content:space-between}.title{font-size:19px;font-weight:800;line-height:1.15}.subtitle{font-size:12px;opacity:.75;margin-top:3px}.import-badge{font-size:11px;background:#1e293b;border:1px solid #475569;border-radius:999px;padding:6px 9px;white-space:nowrap}
+    nav{position:sticky;top:70px;z-index:25;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap}.navinner{max-width:1180px;margin:auto;display:flex;padding:7px 10px;gap:6px}.navbtn{border:0;background:transparent;padding:10px 12px;border-radius:10px;font-weight:700;color:#475569}.navbtn.active{background:#e2e8f0;color:#0f172a}
+    main{max-width:1180px;margin:auto;padding:16px 12px 96px}.section{display:none}.section.active{display:block}.section-head{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap}.section h2{margin:0;font-size:22px}.section h3{margin:20px 0 10px;font-size:17px}
+    .btn{border:1px solid transparent;border-radius:11px;padding:11px 14px;font-weight:800;min-height:44px}.btn.primary{background:var(--brand);color:#fff}.btn.secondary{background:#fff;border-color:var(--line);color:var(--text)}.btn.danger{background:#fff;border-color:#fecaca;color:var(--red)}.btn.small{padding:7px 9px;min-height:34px;font-size:13px}.btn:disabled{opacity:.45;cursor:not-allowed}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(245px,1fr));gap:12px}.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:14px;box-shadow:var(--shadow)}.vehicle-card{position:relative;border-left:7px solid #94a3b8}.vehicle-card.green{border-left-color:var(--green)}.vehicle-card.yellow{border-left-color:#eab308}.vehicle-card.red{border-left-color:var(--red)}.vehicle-card.gray{border-left-color:#94a3b8}.vtop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}.vname{font-size:18px;font-weight:900}.status-pill{font-size:12px;font-weight:900;border-radius:999px;padding:5px 8px}.status-pill.green{background:var(--green-bg);color:var(--green)}.status-pill.yellow{background:var(--yellow-bg);color:var(--yellow)}.status-pill.red{background:var(--red-bg);color:var(--red)}.status-pill.gray{background:var(--gray-bg);color:var(--gray)}.meta{margin-top:10px;font-size:13px;line-height:1.55;color:#334155}.meta b{color:var(--text)}.maintenance-badge{display:inline-block;margin-top:10px;border-radius:8px;padding:6px 8px;font-size:12px;font-weight:900;background:var(--blue-bg);color:var(--blue)}.maintenance-badge.urgent{background:var(--purple-bg);color:var(--purple);outline:2px solid #d8b4fe}.clickhint{font-size:11px;color:var(--muted);margin-top:8px}
+    .notice{border-radius:12px;padding:11px 12px;background:#fff;border:1px solid var(--line);margin-bottom:12px;font-size:13px}.notice strong{display:block;margin-bottom:3px}
+    .control-card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px}.control-title{font-weight:900;font-size:17px;margin-bottom:10px}.status-buttons{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.status-choice{border:2px solid var(--line);background:#fff;border-radius:12px;padding:12px 8px;font-weight:800;min-height:54px}.status-choice.sel-rabboccato{border-color:var(--green);background:var(--green-bg);color:var(--green)}.status-choice.sel-non_necessario{border-color:#64748b;background:#f1f5f9}.status-choice.sel-parziale{border-color:#f59e0b;background:var(--yellow-bg);color:#92400e}.status-choice.sel-guasto{border-color:#64748b;background:var(--gray-bg);color:#334155}.control-note{width:100%;margin-top:9px;border:1px solid var(--line);border-radius:10px;padding:10px;min-height:42px}.date-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px}.date-row input,.filter input,.filter select,.form-grid input,.form-grid select,.form-grid textarea{border:1px solid #cbd5e1;border-radius:10px;padding:10px;background:#fff;min-height:42px}.date-row input{font-weight:700}
+    .filterbar{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px}.filter{display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:700;color:#475569}.table-wrap{overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}table{border-collapse:separate;border-spacing:0;width:100%;min-width:980px;font-size:12px}th,td{padding:8px;border-bottom:1px solid #e2e8f0;border-right:1px solid #e2e8f0;text-align:center;vertical-align:middle}th{position:sticky;top:0;background:#f8fafc;z-index:2;font-size:11px}th:first-child,td:first-child{position:sticky;left:0;background:#fff;z-index:1;font-weight:800}th:first-child{z-index:3;background:#f8fafc}.cellbtn{border:0;border-radius:7px;padding:6px 7px;font-size:11px;font-weight:800;white-space:nowrap}.st-rabboccato{background:var(--green-bg);color:var(--green)}.st-non_necessario{background:#f1f5f9;color:#475569}.st-parziale{background:var(--yellow-bg);color:#92400e}.st-guasto{background:var(--gray-bg);color:#334155}
+    .list{display:flex;flex-direction:column;gap:9px}.item{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px;display:flex;justify-content:space-between;gap:12px;align-items:flex-start}.item-main{min-width:0}.item-title{font-weight:900}.item-sub{font-size:12px;color:var(--muted);margin-top:4px;line-height:1.45}.item-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}.tag{display:inline-block;border-radius:999px;padding:4px 7px;font-size:11px;font-weight:800;margin:3px 4px 0 0;background:#eef2ff;color:#3730a3}.tag.urgent{background:var(--purple-bg);color:var(--purple)}.tag.high{background:var(--orange-bg);color:var(--orange)}.tag.done{background:var(--green-bg);color:var(--green)}.tag.progress{background:var(--blue-bg);color:var(--blue)}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px}.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}.statnum{font-size:24px;font-weight:950}.statlabel{font-size:12px;color:var(--muted);margin-top:2px}
+    .split{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:760px){.split{grid-template-columns:1fr}.import-badge{display:none}nav{top:67px}.title{font-size:17px}.status-buttons{grid-template-columns:1fr 1fr}.item{flex-direction:column}.item-actions{justify-content:flex-start;width:100%}.item-actions .btn{flex:1}.section h2{font-size:20px}}
+    .modal{position:fixed;inset:0;z-index:100;background:rgba(15,23,42,.55);display:none;align-items:flex-end;justify-content:center;padding:0}.modal.open{display:flex}.modalbox{background:#fff;width:min(720px,100%);max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -16px 44px rgba(15,23,42,.2)}@media(min-width:700px){.modal{align-items:center;padding:20px}.modalbox{border-radius:18px;max-height:88vh}}.modalhead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}.modalhead h3{margin:0;font-size:19px}.xbtn{border:0;background:#e2e8f0;border-radius:50%;width:38px;height:38px;font-size:20px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.form-grid .full{grid-column:1/-1}.form-field{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:800;color:#475569}.form-field textarea{min-height:90px;resize:vertical}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap}@media(max-width:600px){.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}.modal-actions .btn{flex:1}}
+    .empty{padding:24px;text-align:center;color:var(--muted);background:#fff;border:1px dashed #cbd5e1;border-radius:14px}.event{border-left:5px solid #64748b}.danger-text{color:var(--red);font-weight:800}.footer-actions{display:flex;gap:8px;flex-wrap:wrap}.footer-actions .btn{flex:1;min-width:150px}.pwa-install-fab{position:fixed;right:16px;bottom:18px;z-index:90;border:0;border-radius:14px;padding:12px 16px;background:#0f172a;color:#fff;font-weight:900;box-shadow:0 10px 30px rgba(15,23,42,.25);display:none}
+  </style>
+</head>
+<body>
+<header><div class="head"><div><div class="title">Rabbocchi Acqua Muletti</div><div class="subtitle">Controlli acqua, manutenzioni e problemi</div></div><div class="import-badge">Storico importato fino al 02/09/2026</div></div></header>
+<nav><div class="navinner">
+  <button class="navbtn active" data-page="dashboard">Situazione</button>
+  <button class="navbtn" data-page="control">Nuovo controllo</button>
+  <button class="navbtn" data-page="history">Storico acqua</button>
+  <button class="navbtn" data-page="maintenance">Manutenzioni</button>
+  <button class="navbtn" data-page="vehicles">Mezzi</button>
+  <button class="navbtn" data-page="settings">Impostazioni</button>
+</div></nav>
+<main>
+  <section id="dashboard" class="section active"></section>
+  <section id="control" class="section"></section>
+  <section id="history" class="section"></section>
+  <section id="maintenance" class="section"></section>
+  <section id="vehicles" class="section"></section>
+  <section id="settings" class="section"></section>
+</main>
+<button id="pwaInstallBtn" class="pwa-install-fab" type="button">Installa app</button>\n<div id="modal" class="modal" aria-hidden="true"><div class="modalbox"><div id="modalContent"></div></div></div>
+<script>
+'use strict';
+const STORAGE_KEY='rabbocchiMuletti_state_v2';
+const DATA_VERSION=2;
+const STATUS={rabboccato:'Rabboccato',non_necessario:'Non necessario',parziale:'Parziale',guasto:'Guasto / fuori servizio'};
+const TYPES=['Cambio gomme','Cambio olio','Ingrassaggio','Controllo catene','Controllo forche','Altro intervento','Problema da risolvere'];
+const PRIORITIES=['Bassa','Normale','Alta','Urgente'];
+const MSTATUSES=['Da fare','In corso','Completata'];
+const VIDS={aisle:'aisle-master',zio:'linde-zio',polveri:'linde-polveri',e30:'linde-e30',liquidi:'linde-liquidi',te:'trasp-elettrico',tel:'trasp-elettrico-lungo',arm:'trsp-armanni'};
+const uid=(p='id')=>p+'-'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8);
+const esc=s=>String(s??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const parseDateLocal=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d,12,0,0)};
+const fmtDate=s=>{if(!s)return '—';const d=parseDateLocal(s);return new Intl.DateTimeFormat('it-IT').format(d)};
+const todayISO=()=>{const d=new Date();const y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'),day=String(d.getDate()).padStart(2,'0');return `${y}-${m}-${day}`};
+const daysBetween=(a,b=todayISO())=>Math.floor((parseDateLocal(b)-parseDateLocal(a))/86400000);
+
+const waterRows=[
+['2024-05-31',['SI','SI','SI','SI','SI','SI','GUASTO']],['2024-06-24',['NO','NO','NO','SI','SI','NO','GUASTO']],['2024-07-12',['SI','SI','SI','SI','SI','SI','GUASTO']],['2024-07-29',['SI','SI','SI','SI','SI','NO','GUASTO']],['2024-08-14',['SI','SI','NO','SI','NO','SI','GUASTO']],['2024-08-30',['NO','SI','SI','NO','NO','NO','GUASTO']],['2024-09-13',['SI','SI','SI','SI','SI','SI','GUASTO']],['2024-10-01',['NO','SI','NO','NO','SI','NO','GUASTO']],['2024-10-17',['SI','NO','NO','SI','NO','NO','GUASTO']],['2024-11-04',['SI','SI','SI','SI','SI','SI','GUASTO']],['2024-11-21',['SI','SI','SI','SI','NO','NO','GUASTO']],['2024-12-09',['NO','SI','NO','NO','SI','NO','GUASTO']],['2024-12-24',['SI','SI','SI','SI','SI','SI','GUASTO']],['2025-01-13',['SI','SI','NO','SI','NO','NO','GUASTO']],['2025-01-24',['SI','SI','SI','SI','SI','SI','GUASTO']],['2025-02-07',['SI','SI','SI','SI','NO','NO','GUASTO']],['2025-02-28',['SI','SI','NO','SI','SI','NO','GUASTO']],['2025-03-21',['SI','SI','SI','NO','SI','NO','GUASTO']],['2025-03-25',['SI','NO','NO','NO','NO','NO','GUASTO']],['2025-04-09',['SI','GUASTO','SI','SI','NO','SI','GUASTO']],['2025-04-30',['SI','SI','GUASTO','SI','SI','SI','SI']],['2025-05-27',['SI','SI','SI','SI','SI','SI','NO']],['2025-06-19',['SI','SI','SI','SI','SI','SI','SI']],['2025-06-27',['SI','SI','SI','NO','NO','NO','NO']],['2025-07-28',['NO','SI','NO','NO','SI','NO','GUASTO']],['2025-07-29',['SI','SI','SI','SI','NO','SI','GUASTO']],['2025-08-13',['SI','SI','SI','SI','SI','NO','GUASTO']],['2025-09-01',['SI','SI','NO','NO','SI','NO','GUASTO']],['2025-09-05',['NO','SI','SI','SI','NO','NO','GUASTO']],['2025-09-08',['NO','NO','NO','NO','NO','SI','GUASTO']],['2025-10-13',['SI','SI','NO','NO','SI','NO','GUASTO']],['2025-10-16',['NO','SI','SI','SI','NO','SI','GUASTO']],['2025-11-09',['SI','NO','NO','NO','NO','NO','GUASTO']],['2025-11-13',['NO','SI','SI','SI','SI','SI','GUASTO']],['2025-11-10',['SI','SI','SI','SI','SI','SI','GUASTO']],['2026-01-07',['SI','SI','NO','NO','SI','NO','GUASTO']],['2026-01-12',['NO','NO','SI','SI','SI','NO','GUASTO']],['2026-02-06',['SI','NO','NO','NO','SI','NO','GUASTO']],['2026-02-09',['NO','SI','SI','NOIOS','NO','NO','GUASTO']],['2026-03-09',['SI','SI','SI','SI','SI','SI','GUASTO']],['2026-03-30',['SI','NO','NO','NO','NO','NO','GUASTO']],['2026-04-09',['NO','NO','SI','NO','SI','NO','GUASTO']],['2026-04-15',['NO','PARZIALE','NO','NO','NO','NO','GUASTO']],['2026-05-18',['PARZIALE','PARZIALE','NO','NO','SI','NO','GUASTO']],['2026-06-18',['SI','SI','NO','SI','NO','SI','GUASTO']],['2026-07-01',['NO','NO','SI','NO','SI','NO','GUASTO']],['2026-07-08',['SI','SI','NO','NO','SI','NO','GUASTO']],['2026-08-11',['SI','SI','SI','SI','SI','SI','GUASTO']],['2026-09-02',['SI','SI','SI','SI','SI','SI','GUASTO']]
+];
+function normalizeStatus(v){if(v==='SI')return 'rabboccato';if(v==='NO'||v==='NOIOS')return 'non_necessario';if(v==='PARZIALE')return 'parziale';return 'guasto'}
+function seedState(){
+  const vehicles=[
+    {id:VIDS.aisle,name:'Aisle Master',active:true,sort:1},{id:VIDS.zio,name:'Linde Zio',active:true,sort:2},{id:VIDS.polveri,name:'Linde Polveri',active:false,sort:3,archivedAt:'2025-06-23'},{id:VIDS.e30,name:'Linde E30',active:true,sort:4},{id:VIDS.liquidi,name:'Linde Liquidi',active:true,sort:5},{id:VIDS.te,name:'Trasp. Elettrico',active:true,sort:6},{id:VIDS.tel,name:'Trasp. Elett. Lungo',active:true,sort:7},{id:VIDS.arm,name:'Trsp. Armanni',active:true,sort:8}
+  ];
+  const waterRecords=[];
+  const beforeSwitch=[VIDS.aisle,VIDS.zio,VIDS.polveri,VIDS.liquidi,VIDS.te,VIDS.tel,VIDS.arm];
+  const afterSwitch=[VIDS.aisle,VIDS.zio,VIDS.e30,VIDS.liquidi,VIDS.te,VIDS.tel,VIDS.arm];
+  const vmap=Object.fromEntries(vehicles.map(v=>[v.id,v.name]));
+  for(const [date,vals] of waterRows){const ids=date<='2025-06-19'?beforeSwitch:afterSwitch;vals.forEach((raw,i)=>{const vehicleId=ids[i];waterRecords.push({id:`imp-${date}-${vehicleId}`,date,vehicleId,vehicleName:vmap[vehicleId],status:normalizeStatus(raw),note:raw==='NOIOS'?'Valore originale: No- ios':'',source:'import'});});}
+  const historicalEvents=[
+    {id:'evt-2025-04-10',date:'2025-04-10',type:'Ingrassaggio',description:'Registro storico ingrassaggio',details:{'Aisle Master':'SI','Linde Zio':'SI','Linde Polveri':'NO','Linde Liquidi':'NO','Trasp. Elettrico':'NO','Trasp. Elett. Lungo':'NO','Trsp. Armanni':'Guasto-No'}},
+    {id:'evt-2025-06-27',date:'2025-06-27',type:'Manutenzione',description:'Registro storico manutenzione',details:{'Aisle Master':'SI / Manca revisione','Linde Zio':'SI / Non idoneo','Linde E30':'SI','Linde Liquidi':'SI / non idoneo','Trasp. Elettrico':'SI','Trasp. Elett. Lungo':'SI','Trsp. Armanni':'SI / Non idoneo'}},
+    {id:'evt-2025-11-13',date:'2025-11-13',type:'Problema',description:'Alzata forche lenta; Perdita di olio',details:null,unassigned:true}
+  ];
+  const maintenances=[
+    {id:'mnt-2025-04-10-aisle',vehicleId:VIDS.aisle,vehicleName:'Aisle Master',type:'Ingrassaggio',title:'Ingrassaggio storico',dateCreated:'2025-04-10',dueDate:'',priority:'Normale',status:'Completata',notes:'Importato dal registro storico.',completedAt:'2025-04-10',source:'import'},
+    {id:'mnt-2025-04-10-zio',vehicleId:VIDS.zio,vehicleName:'Linde Zio',type:'Ingrassaggio',title:'Ingrassaggio storico',dateCreated:'2025-04-10',dueDate:'',priority:'Normale',status:'Completata',notes:'Importato dal registro storico.',completedAt:'2025-04-10',source:'import'}
+  ];
+  return {dataVersion:DATA_VERSION,seeded:true,vehicles,waterRecords,maintenances,historicalEvents,notifications:{},settings:{notificationsEnabled:false}};
+}
+function migrateState(s){
+  if(!s||typeof s!=='object')return seedState();
+  if(!Array.isArray(s.vehicles)||!Array.isArray(s.waterRecords))return seedState();
+  if((s.dataVersion||0)<2){
+    const seed=seedState();
+    const hasManual=s.waterRecords.some(r=>r.source!=='import');
+    if(!hasManual)return seed;
+    const manualWater=s.waterRecords.filter(r=>r.source!=='import');
+    const manualM=(s.maintenances||[]).filter(r=>r.source!=='import');
+    seed.waterRecords.push(...manualWater.filter(r=>!seed.waterRecords.some(x=>x.id===r.id)));
+    seed.maintenances.push(...manualM.filter(r=>!seed.maintenances.some(x=>x.id===r.id)));
+    return seed;
+  }
+  return s;
+}
+function loadState(){try{const raw=localStorage.getItem(STORAGE_KEY);if(!raw){const s=seedState();saveState(s);return s}const s=migrateState(JSON.parse(raw));saveState(s);return s}catch(e){const s=seedState();saveState(s);return s}}
+function saveState(s=state){localStorage.setItem(STORAGE_KEY,JSON.stringify(s))}
+let state=loadState();
+const getVehicle=id=>state.vehicles.find(v=>v.id===id);
+const activeVehicles=()=>state.vehicles.filter(v=>v.active).sort((a,b)=>(a.sort??999)-(b.sort??999));
+const allVehicles=()=>[...state.vehicles].sort((a,b)=>(a.sort??999)-(b.sort??999));
+const vehicleWater=id=>state.waterRecords.filter(r=>r.vehicleId===id).sort((a,b)=>b.date.localeCompare(a.date));
+function waterInfo(id){
+  const recs=vehicleWater(id), latest=recs[0]||null, refill=recs.find(r=>r.status==='rabboccato'||r.status==='parziale')||null, lastNo=recs.find(r=>r.status==='non_necessario')||null;
+  if(latest?.status==='guasto')return {level:'gray',label:'Fuori servizio',latest,refill,lastNo,days:refill?daysBetween(refill.date):null,suspended:true};
+  if(!refill)return {level:'gray',label:'Nessun rabbocco',latest,refill:null,lastNo,days:null,suspended:false};
+  const days=daysBetween(refill.date); if(days>=30)return {level:'red',label:'30+ giorni',latest,refill,lastNo,days,suspended:false}; if(days>=14)return {level:'yellow',label:'14+ giorni',latest,refill,lastNo,days,suspended:false}; return {level:'green',label:'Regolare',latest,refill,lastNo,days,suspended:false};
+}
+function openMaint(id){return state.maintenances.filter(m=>m.vehicleId===id&&m.status!=='Completata')}
+function checkNotifications(){
+  if(!state.settings.notificationsEnabled||!('Notification'in window)||Notification.permission!=='granted')return;
+  let changed=false;
+  for(const v of activeVehicles()){
+    const info=waterInfo(v.id);if(info.suspended||!info.refill)continue;
+    const cycle=info.refill.date;let n=state.notifications[v.id];if(!n||n.cycleDate!==cycle){n={cycleDate:cycle,yellowSent:false,redSent:false};state.notifications[v.id]=n;changed=true}
+    if(info.days>=30&&!n.redSent){new Notification('Rabbocco acqua — '+v.name,{body:`Ultimo rabbocco ${fmtDate(cycle)} (${info.days} giorni). Stato rosso.`});n.redSent=true;n.yellowSent=true;changed=true}
+    else if(info.days>=14&&!n.yellowSent){new Notification('Controllo acqua — '+v.name,{body:`Sono trascorsi ${info.days} giorni dall'ultimo rabbocco (${fmtDate(cycle)}). Stato giallo.`});n.yellowSent=true;changed=true}
+  }
+  if(changed)saveState();
+}
+
+function setPage(page){document.querySelectorAll('.section').forEach(s=>s.classList.toggle('active',s.id===page));document.querySelectorAll('.navbtn').forEach(b=>b.classList.toggle('active',b.dataset.page===page));renderPage(page);window.scrollTo({top:0,behavior:'smooth'})}
+document.querySelectorAll('.navbtn').forEach(b=>b.addEventListener('click',()=>setPage(b.dataset.page)));
+function renderPage(p){({dashboard:renderDashboard,control:renderControl,history:renderHistory,maintenance:renderMaintenance,vehicles:renderVehicles,settings:renderSettings}[p]||renderDashboard)()}
+
+function renderDashboard(){
+  const el=document.getElementById('dashboard');
+  const order={red:0,yellow:1,gray:2,green:3};
+  const list=activeVehicles().map(v=>({v,info:waterInfo(v.id)})).sort((a,b)=>order[a.info.level]-order[b.info.level]||(a.v.sort-b.v.sort));
+  el.innerHTML=`<div class="section-head"><div><h2>Situazione attuale</h2><div class="subtitle" style="color:var(--muted)">Giallo dal 14° giorno · Rosso dal 30° giorno</div></div><button class="btn primary" onclick="setPage('control')">+ Nuovo controllo</button></div><div class="grid">${list.map(({v,info})=>vehicleCard(v,info)).join('')}</div>`;
+}
+function vehicleCard(v,info){
+  const m=openMaint(v.id),urgent=m.some(x=>x.priority==='Urgente');
+  const next14=info.refill?new Date(parseDateLocal(info.refill.date).getTime()+14*86400000):null,next30=info.refill?new Date(parseDateLocal(info.refill.date).getTime()+30*86400000):null;
+  const f=d=>d?new Intl.DateTimeFormat('it-IT').format(d):'—';
+  return `<div class="card vehicle-card ${info.level}" onclick="openVehicleDetail('${v.id}')"><div class="vtop"><div class="vname">${esc(v.name)}</div><span class="status-pill ${info.level}">${esc(info.label)}</span></div><div class="meta"><div><b>Ultimo rabbocco:</b> ${info.refill?fmtDate(info.refill.date):'—'}</div><div><b>Giorni trascorsi:</b> ${info.days??'—'}</div><div><b>Avviso giallo:</b> ${f(next14)}</div><div><b>Avviso rosso:</b> ${f(next30)}</div>${info.lastNo?`<div><b>Ultimo controllo “non necessario”:</b> ${fmtDate(info.lastNo.date)}</div>`:''}${info.suspended?`<div class="danger-text">Avvisi acqua sospesi: mezzo fuori servizio</div>`:''}</div>${m.length?`<span class="maintenance-badge ${urgent?'urgent':''}">${urgent?'⚠ ':''}${m.length} manutenzion${m.length===1?'e':'i'} apert${m.length===1?'a':'e'}</span>`:''}<div class="clickhint">Tocca per dettagli del mezzo</div></div>`;
+}
+
+let controlSelections={};
+function renderControl(){
+  controlSelections={}; const el=document.getElementById('control');
+  el.innerHTML=`<div class="section-head"><div><h2>Nuovo controllo acqua</h2><div class="subtitle" style="color:var(--muted)">Rabboccato e Parziale fanno ripartire il conteggio. “Non necessario” no.</div></div></div><div class="date-row"><label><b>Data controllo</b></label><input id="controlDate" type="date" value="${todayISO()}"></div><div id="controlVehicles">${activeVehicles().map(v=>controlBlock(v)).join('')}</div><button class="btn primary" style="width:100%;margin-top:8px" onclick="saveControl()">Salva controllo</button>`;
+}
+function controlBlock(v){return `<div class="control-card" data-vid="${v.id}"><div class="control-title">${esc(v.name)}</div><div class="status-buttons">${[['rabboccato','Rabboccato'],['non_necessario','Non necessario'],['parziale','Parziale'],['guasto','Guasto / fuori servizio']].map(([k,l])=>`<button class="status-choice" data-status="${k}" onclick="chooseStatus('${v.id}','${k}',this)">${l}</button>`).join('')}</div><input class="control-note" id="note-${v.id}" placeholder="Nota facoltativa"></div>`}
+function chooseStatus(id,status,btn){controlSelections[id]=status;btn.closest('.control-card').querySelectorAll('.status-choice').forEach(b=>b.className='status-choice');btn.classList.add('sel-'+status)}
+function saveControl(){const date=document.getElementById('controlDate').value;if(!date){alert('Inserisci la data.');return}const ids=Object.keys(controlSelections);if(!ids.length){alert('Seleziona almeno un mezzo.');return}ids.forEach(id=>{const v=getVehicle(id);state.waterRecords.push({id:uid('water'),date,vehicleId:id,vehicleName:v.name,status:controlSelections[id],note:document.getElementById('note-'+id)?.value.trim()||'',source:'manual'})});saveState();checkNotifications();alert('Controllo salvato.');setPage('dashboard')}
+
+function renderHistory(){
+  const el=document.getElementById('history');const from=document.getElementById('hf')?.value||'',to=document.getElementById('ht')?.value||'',vid=document.getElementById('hv')?.value||'all';
+  el.innerHTML=`<div class="section-head"><div><h2>Storico acqua</h2><div class="subtitle" style="color:var(--muted)">Tocca una cella per modificarla o eliminarla</div></div><div class="footer-actions"><button class="btn secondary" onclick="exportWaterCSV()">Esporta CSV</button><button class="btn secondary" onclick="window.print()">Stampa / PDF</button></div></div><div class="filterbar"><label class="filter">Dal<input id="hf" type="date" value="${from}" onchange="renderHistory()"></label><label class="filter">Al<input id="ht" type="date" value="${to}" onchange="renderHistory()"></label><label class="filter">Mezzo<select id="hv" onchange="renderHistory()"><option value="all">Tutti</option>${allVehicles().map(v=>`<option value="${v.id}" ${vid===v.id?'selected':''}>${esc(v.name)}${v.active?'':' (archiviato)'}</option>`).join('')}</select></label></div>${historyTable(from,to,vid)}`;
+}
+function historyTable(from,to,vid){let rs=state.waterRecords.filter(r=>(!from||r.date>=from)&&(!to||r.date<=to)&&(vid==='all'||r.vehicleId===vid));const dates=[...new Set(rs.map(r=>r.date))].sort().reverse();const vehicles=(vid==='all'?allVehicles():allVehicles().filter(v=>v.id===vid));if(!dates.length)return '<div class="empty">Nessun record nel periodo selezionato.</div>';const by=new Map(rs.map(r=>[r.date+'|'+r.vehicleId,r]));return `<div class="table-wrap"><table><thead><tr><th>Data</th>${vehicles.map(v=>`<th>${esc(v.name)}${v.active?'':'<br><span style="font-weight:500;color:#64748b">archiviato</span>'}</th>`).join('')}</tr></thead><tbody>${dates.map(d=>`<tr><td>${fmtDate(d)}</td>${vehicles.map(v=>{const r=by.get(d+'|'+v.id);return `<td>${r?`<button class="cellbtn st-${r.status}" title="${esc(r.note)}" onclick="editWater('${r.id}')">${esc(STATUS[r.status])}${r.note?' *':''}</button>`:'—'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div>`}
+function editWater(id){const r=state.waterRecords.find(x=>x.id===id);if(!r)return;openModal(`<div class="modalhead"><h3>Modifica registrazione</h3><button class="xbtn" onclick="closeModal()">×</button></div><div class="form-grid"><label class="form-field">Mezzo<input value="${esc(r.vehicleName)}" disabled></label><label class="form-field">Data<input id="ew-date" type="date" value="${r.date}"></label><label class="form-field full">Stato<select id="ew-status">${Object.entries(STATUS).map(([k,l])=>`<option value="${k}" ${r.status===k?'selected':''}>${l}</option>`).join('')}</select></label><label class="form-field full">Nota<textarea id="ew-note">${esc(r.note)}</textarea></label></div><div class="modal-actions"><button class="btn danger" onclick="deleteWater('${r.id}')">Elimina</button><button class="btn secondary" onclick="closeModal()">Annulla</button><button class="btn primary" onclick="saveWaterEdit('${r.id}')">Salva</button></div>`)}
+function saveWaterEdit(id){const r=state.waterRecords.find(x=>x.id===id);r.date=document.getElementById('ew-date').value;r.status=document.getElementById('ew-status').value;r.note=document.getElementById('ew-note').value.trim();saveState();closeModal();renderHistory();renderDashboard()}
+function deleteWater(id){if(!confirm('Eliminare questa registrazione?'))return;state.waterRecords=state.waterRecords.filter(x=>x.id!==id);saveState();closeModal();renderHistory();renderDashboard()}
+function exportWaterCSV(){const rows=[['Data','Mezzo','Stato','Nota']];state.waterRecords.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(r=>rows.push([r.date,r.vehicleName,STATUS[r.status],r.note||'']));downloadText('storico-rabbocchi.csv',rows.map(row=>row.map(csvCell).join(';')).join('\n'),'text/csv;charset=utf-8')}
+const csvCell=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+
+let maintFilters={vehicle:'all',status:'open',type:'all',priority:'all'};
+function renderMaintenance(){
+  const el=document.getElementById('maintenance');let list=state.maintenances.filter(m=>(maintFilters.vehicle==='all'||m.vehicleId===maintFilters.vehicle)&&(maintFilters.status==='all'||(maintFilters.status==='open'?m.status!=='Completata':m.status===maintFilters.status))&&(maintFilters.type==='all'||m.type===maintFilters.type)&&(maintFilters.priority==='all'||m.priority===maintFilters.priority));
+  const openAll=state.maintenances.filter(m=>m.status!=='Completata'),urgent=openAll.filter(m=>m.priority==='Urgente'),due=openAll.filter(m=>m.dueDate&&m.dueDate<todayISO());
+  const open=list.filter(m=>m.status!=='Completata').sort(sortMaint),done=list.filter(m=>m.status==='Completata').sort((a,b)=>(b.completedAt||b.dateCreated).localeCompare(a.completedAt||a.dateCreated));
+  el.innerHTML=`<div class="section-head"><div><h2>Manutenzioni</h2><div class="subtitle" style="color:var(--muted)">Interventi e problemi separati dai timer acqua</div></div><button class="btn primary" onclick="openMaintenanceForm()">+ Nuova manutenzione</button></div><div class="stats"><div class="stat"><div class="statnum">${openAll.length}</div><div class="statlabel">Attività aperte</div></div><div class="stat"><div class="statnum">${urgent.length}</div><div class="statlabel">Urgenti aperte</div></div><div class="stat"><div class="statnum">${due.length}</div><div class="statlabel">Scadute</div></div></div><div class="filterbar"><label class="filter">Mezzo<select onchange="maintFilters.vehicle=this.value;renderMaintenance()"><option value="all">Tutti</option>${allVehicles().map(v=>`<option value="${v.id}" ${maintFilters.vehicle===v.id?'selected':''}>${esc(v.name)}${v.active?'':' (archiviato)'}</option>`).join('')}</select></label><label class="filter">Stato<select onchange="maintFilters.status=this.value;renderMaintenance()"><option value="open" ${maintFilters.status==='open'?'selected':''}>Aperte</option><option value="Da fare" ${maintFilters.status==='Da fare'?'selected':''}>Da fare</option><option value="In corso" ${maintFilters.status==='In corso'?'selected':''}>In corso</option><option value="Completata" ${maintFilters.status==='Completata'?'selected':''}>Completate</option><option value="all" ${maintFilters.status==='all'?'selected':''}>Tutte</option></select></label><label class="filter">Tipo<select onchange="maintFilters.type=this.value;renderMaintenance()"><option value="all">Tutti</option>${TYPES.map(t=>`<option ${maintFilters.type===t?'selected':''}>${t}</option>`).join('')}</select></label><label class="filter">Priorità<select onchange="maintFilters.priority=this.value;renderMaintenance()"><option value="all">Tutte</option>${PRIORITIES.map(p=>`<option ${maintFilters.priority===p?'selected':''}>${p}</option>`).join('')}</select></label></div><h3>Aperte</h3>${open.length?`<div class="list">${open.map(maintItem).join('')}</div>`:'<div class="empty">Nessuna attività aperta con questi filtri.</div>'}<h3>Completate</h3>${done.length?`<div class="list">${done.map(maintItem).join('')}</div>`:'<div class="empty">Nessuna attività completata con questi filtri.</div>'}<h3>Eventi storici non-acqua</h3><div class="list">${state.historicalEvents.map(eventItem).join('')}</div>`;
+}
+function sortMaint(a,b){const pr={Urgente:0,Alta:1,Normale:2,Bassa:3};return pr[a.priority]-pr[b.priority]||(a.dueDate||'9999').localeCompare(b.dueDate||'9999')||b.dateCreated.localeCompare(a.dateCreated)}
+function maintItem(m){const v=getVehicle(m.vehicleId);const overdue=m.status!=='Completata'&&m.dueDate&&m.dueDate<todayISO();return `<div class="item"><div class="item-main"><div class="item-title">${esc(m.title)}</div><div class="item-sub"><b>${esc(v?.name||m.vehicleName)}</b> · ${esc(m.type)} · Inserita ${fmtDate(m.dateCreated)}${m.dueDate?` · Scadenza ${fmtDate(m.dueDate)}${overdue?' <span class="danger-text">SCADUTA</span>':''}`:''}${m.completedAt?` · Completata ${fmtDate(m.completedAt)}`:''}</div><div><span class="tag ${m.priority==='Urgente'?'urgent':m.priority==='Alta'?'high':''}">${esc(m.priority)}</span><span class="tag ${m.status==='Completata'?'done':m.status==='In corso'?'progress':''}">${esc(m.status)}</span></div>${m.notes?`<div class="item-sub">${esc(m.notes)}</div>`:''}</div><div class="item-actions">${m.status==='Da fare'?`<button class="btn secondary small" onclick="setMaintStatus('${m.id}','In corso')">In corso</button>`:''}${m.status!=='Completata'?`<button class="btn secondary small" onclick="setMaintStatus('${m.id}','Completata')">Completa</button>`:`<button class="btn secondary small" onclick="setMaintStatus('${m.id}','Da fare')">Riapri</button>`}<button class="btn secondary small" onclick="openMaintenanceForm('${m.id}')">Modifica</button><button class="btn danger small" onclick="deleteMaintenance('${m.id}')">Elimina</button></div></div>`}
+function eventItem(e){const details=e.details?Object.entries(e.details).map(([k,v])=>`${esc(k)}: ${esc(v)}`).join(' · '):'';return `<div class="item event"><div class="item-main"><div class="item-title">${fmtDate(e.date)} — ${esc(e.type)}</div><div class="item-sub">${esc(e.description)}${details?'<br>'+details:''}${e.unassigned?'<br><b>Non assegnato a un mezzo</b>':''}</div></div>${e.unassigned?`<div class="item-actions"><button class="btn secondary small" onclick="assignHistoricalEvent('${e.id}')">Assegna a un mezzo</button></div>`:''}</div>`}
+function openMaintenanceForm(id=''){const m=id?state.maintenances.find(x=>x.id===id):null;openModal(`<div class="modalhead"><h3>${m?'Modifica':'Nuova'} manutenzione</h3><button class="xbtn" onclick="closeModal()">×</button></div><div class="form-grid"><label class="form-field">Mezzo<select id="mf-vehicle">${allVehicles().filter(v=>v.active||m?.vehicleId===v.id).map(v=>`<option value="${v.id}" ${(m?.vehicleId||'')===v.id?'selected':''}>${esc(v.name)}${v.active?'':' (archiviato)'}</option>`).join('')}</select></label><label class="form-field">Tipo<select id="mf-type">${TYPES.map(t=>`<option ${m?.type===t?'selected':''}>${t}</option>`).join('')}</select></label><label class="form-field full">Titolo / descrizione breve<input id="mf-title" value="${esc(m?.title||'')}" placeholder="Es. Controllare usura gomme"></label><label class="form-field">Data inserimento<input id="mf-created" type="date" value="${m?.dateCreated||todayISO()}"></label><label class="form-field">Scadenza (facoltativa)<input id="mf-due" type="date" value="${m?.dueDate||''}"></label><label class="form-field">Priorità<select id="mf-priority">${PRIORITIES.map(p=>`<option ${m?.priority===p?'selected':''}>${p}</option>`).join('')}</select></label><label class="form-field">Stato<select id="mf-status">${MSTATUSES.map(s=>`<option ${m?.status===s?'selected':''}>${s}</option>`).join('')}</select></label><label class="form-field full">Note<textarea id="mf-notes">${esc(m?.notes||'')}</textarea></label></div><div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Annulla</button><button class="btn primary" onclick="saveMaintenance('${id}')">Salva</button></div>`)}
+function saveMaintenance(id){const vehicleId=document.getElementById('mf-vehicle').value,title=document.getElementById('mf-title').value.trim();if(!vehicleId||!title){alert('Mezzo e titolo sono obbligatori.');return}const status=document.getElementById('mf-status').value;const obj={id:id||uid('mnt'),vehicleId,vehicleName:getVehicle(vehicleId)?.name||'',type:document.getElementById('mf-type').value,title,dateCreated:document.getElementById('mf-created').value||todayISO(),dueDate:document.getElementById('mf-due').value,priority:document.getElementById('mf-priority').value,status,notes:document.getElementById('mf-notes').value.trim(),completedAt:status==='Completata'?(id?state.maintenances.find(x=>x.id===id)?.completedAt||todayISO():todayISO()):'',source:id?(state.maintenances.find(x=>x.id===id)?.source||'manual'):'manual'};if(id){const i=state.maintenances.findIndex(x=>x.id===id);state.maintenances[i]=obj}else state.maintenances.push(obj);saveState();closeModal();renderMaintenance();renderDashboard()}
+function setMaintStatus(id,status){const m=state.maintenances.find(x=>x.id===id);m.status=status;m.completedAt=status==='Completata'?todayISO():'';saveState();renderMaintenance();renderDashboard()}
+function deleteMaintenance(id){if(!confirm('Eliminare questa voce di manutenzione?'))return;state.maintenances=state.maintenances.filter(x=>x.id!==id);saveState();renderMaintenance();renderDashboard()}
+function assignHistoricalEvent(id){const e=state.historicalEvents.find(x=>x.id===id);openModal(`<div class="modalhead"><h3>Assegna evento storico</h3><button class="xbtn" onclick="closeModal()">×</button></div><p>${esc(e.description)}</p><div class="form-grid"><label class="form-field full">Mezzo<select id="ae-vehicle">${activeVehicles().map(v=>`<option value="${v.id}">${esc(v.name)}</option>`).join('')}</select></label></div><div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Annulla</button><button class="btn primary" onclick="confirmAssignEvent('${id}')">Assegna</button></div>`)}
+function confirmAssignEvent(id){const e=state.historicalEvents.find(x=>x.id===id),vehicleId=document.getElementById('ae-vehicle').value;e.assignedVehicleId=vehicleId;e.unassigned=false;e.description+=' — assegnato manualmente a '+getVehicle(vehicleId).name;saveState();closeModal();renderMaintenance()}
+
+function renderVehicles(){const el=document.getElementById('vehicles');el.innerHTML=`<div class="section-head"><div><h2>Gestione mezzi</h2><div class="subtitle" style="color:var(--muted)">Archivia invece di cancellare per conservare lo storico</div></div><button class="btn primary" onclick="addVehiclePrompt()">+ Aggiungi mezzo</button></div><div class="list">${allVehicles().map(v=>{const water=vehicleWater(v.id).length,m=state.maintenances.filter(x=>x.vehicleId===v.id).length;return `<div class="item"><div class="item-main"><div class="item-title">${esc(v.name)} ${v.active?'':'<span class="tag">Archiviato</span>'}</div><div class="item-sub">${water} registrazioni acqua · ${m} manutenzioni</div></div><div class="item-actions"><button class="btn secondary small" onclick="renameVehicle('${v.id}')">Rinomina</button><button class="btn secondary small" onclick="toggleVehicle('${v.id}')">${v.active?'Archivia':'Riattiva'}</button><button class="btn secondary small" onclick="openVehicleDetail('${v.id}')">Dettagli</button><button class="btn danger small" ${water||m?'disabled':''} onclick="deleteVehicle('${v.id}')">Elimina</button></div></div>`}).join('')}</div>`}
+function addVehiclePrompt(){const name=prompt('Nome del nuovo mezzo:');if(!name?.trim())return;state.vehicles.push({id:uid('vehicle'),name:name.trim(),active:true,sort:Math.max(0,...state.vehicles.map(v=>v.sort||0))+1});saveState();renderVehicles();renderDashboard()}
+function renameVehicle(id){const v=getVehicle(id),name=prompt('Nuovo nome:',v.name);if(!name?.trim()||name.trim()===v.name)return;v.name=name.trim();saveState();renderVehicles();renderDashboard()}
+function toggleVehicle(id){const v=getVehicle(id);v.active=!v.active;v.archivedAt=v.active?'':todayISO();saveState();renderVehicles();renderDashboard()}
+function deleteVehicle(id){const has=state.waterRecords.some(r=>r.vehicleId===id)||state.maintenances.some(m=>m.vehicleId===id);if(has){alert('Questo mezzo ha uno storico e non può essere eliminato. Puoi archiviarlo.');return}if(!confirm('Eliminare definitivamente il mezzo?'))return;state.vehicles=state.vehicles.filter(v=>v.id!==id);saveState();renderVehicles();renderDashboard()}
+function openVehicleDetail(id){const v=getVehicle(id);const info=waterInfo(id),recent=vehicleWater(id).slice(0,6),open=openMaint(id),done=state.maintenances.filter(m=>m.vehicleId===id&&m.status==='Completata').sort((a,b)=>(b.completedAt||'').localeCompare(a.completedAt||'')).slice(0,5);openModal(`<div class="modalhead"><div><h3>${esc(v.name)}</h3><div class="subtitle" style="color:var(--muted)">${v.active?'Mezzo attivo':'Mezzo archiviato'}</div></div><button class="xbtn" onclick="closeModal()">×</button></div><div class="notice"><strong>Situazione acqua</strong>Ultimo rabbocco: ${info.refill?fmtDate(info.refill.date):'—'} · Giorni: ${info.days??'—'} · Stato: ${esc(info.label)}</div><h3>Manutenzioni aperte</h3>${open.length?`<div class="list">${open.map(maintItem).join('')}</div>`:'<div class="empty">Nessuna manutenzione aperta.</div>'}<h3>Rabbocchi recenti</h3>${recent.length?`<div class="list">${recent.map(r=>`<div class="item"><div class="item-main"><div class="item-title">${fmtDate(r.date)} — ${esc(STATUS[r.status])}</div>${r.note?`<div class="item-sub">${esc(r.note)}</div>`:''}</div></div>`).join('')}</div>`:'<div class="empty">Nessun record.</div>'}<h3>Manutenzioni completate</h3>${done.length?`<div class="list">${done.map(maintItem).join('')}</div>`:'<div class="empty">Nessuna manutenzione completata.</div>'}`)}
+
+function renderSettings(){const el=document.getElementById('settings');const notif=('Notification'in window)?Notification.permission:'non supportate';el.innerHTML=`<div class="section-head"><div><h2>Impostazioni</h2><div class="subtitle" style="color:var(--muted)">Dati salvati localmente sul dispositivo</div></div></div><div class="split"><div class="card"><h3 style="margin-top:0">Avvisi acqua</h3><div class="meta"><div><b>Giallo:</b> dal 14° giorno</div><div><b>Rosso:</b> dal 30° giorno</div><div><b>Notifiche dispositivo:</b> ${esc(notif)}</div><div>Le notifiche vengono controllate all'apertura/riattivazione e mentre l'app è aperta. Gli stati colorati restano sempre visibili.</div></div><button class="btn primary" style="margin-top:12px" onclick="enableNotifications()">Attiva notifiche</button></div><div class="card"><h3 style="margin-top:0">Backup dati</h3><div class="meta">Esporta periodicamente un backup JSON. Il ripristino sostituisce i dati presenti sul dispositivo.</div><div class="footer-actions" style="margin-top:12px"><button class="btn secondary" onclick="backupJSON()">Esporta backup</button><button class="btn secondary" onclick="document.getElementById('restoreFile').click()">Ripristina backup</button><input id="restoreFile" type="file" accept="application/json,.json" hidden onchange="restoreJSON(this.files[0])"></div></div></div><div class="card" style="margin-top:14px"><h3 style="margin-top:0">Informazioni dati</h3><div class="meta">Versione dati: ${state.dataVersion} · Registrazioni acqua: ${state.waterRecords.length} · Mezzi: ${state.vehicles.length} · Manutenzioni: ${state.maintenances.length}<br><b>Linde Polveri</b> e <b>Linde E30</b> sono gestiti come due mezzi distinti con ID e storici separati.</div></div>`}
+async function enableNotifications(){if(!('Notification'in window)){alert('Le notifiche non sono supportate da questo browser.');return}const p=await Notification.requestPermission();state.settings.notificationsEnabled=p==='granted';saveState();if(p==='granted'){checkNotifications();alert('Notifiche attivate.')}else alert('Permesso notifiche non concesso.');renderSettings()}
+function backupJSON(){downloadText(`rabbocchi-muletti-backup-${todayISO()}.json`,JSON.stringify(state,null,2),'application/json')}
+function restoreJSON(file){if(!file)return;if(!confirm('Il ripristino sostituirà i dati attuali. Continuare?'))return;const reader=new FileReader();reader.onload=()=>{try{const obj=JSON.parse(reader.result);if(!obj.vehicles||!obj.waterRecords)throw new Error();state=migrateState(obj);saveState();alert('Backup ripristinato.');renderPage(document.querySelector('.section.active').id)}catch(e){alert('File di backup non valido.')}};reader.readAsText(file)}
+function downloadText(name,text,type){const blob=new Blob([text],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+function openModal(html){document.getElementById('modalContent').innerHTML=html;document.getElementById('modal').classList.add('open');document.getElementById('modal').setAttribute('aria-hidden','false')}
+function closeModal(){document.getElementById('modal').classList.remove('open');document.getElementById('modal').setAttribute('aria-hidden','true')}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
+
+
+let deferredInstallPrompt=null;
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault();
+  deferredInstallPrompt=e;
+  const b=document.getElementById('pwaInstallBtn');
+  if(b)b.style.display='block';
+});
+window.addEventListener('appinstalled',()=>{
+  deferredInstallPrompt=null;
+  const b=document.getElementById('pwaInstallBtn');
+  if(b)b.style.display='none';
+});
+async function promptPwaInstall(){
+  if(!deferredInstallPrompt){
+    alert('Chrome non ha ancora dichiarato questa PWA installabile. Apri Impostazioni > Diagnostica PWA per vedere quale requisito manca.');
+    return;
+  }
+  deferredInstallPrompt.prompt();
+  await deferredInstallPrompt.userChoice;
+  deferredInstallPrompt=null;
+  const b=document.getElementById('pwaInstallBtn');
+  if(b)b.style.display='none';
+}
+document.getElementById('pwaInstallBtn').addEventListener('click',promptPwaInstall);
+
+async function pwaDiagnostics(){
+  const rows=[];
+  rows.push(['Connessione sicura (HTTPS)',window.isSecureContext]);
+  rows.push(['Supporto Service Worker','serviceWorker' in navigator]);
+  let reg=null;
+  if('serviceWorker' in navigator){
+    try{
+      reg=await navigator.serviceWorker.getRegistration();
+      rows.push(['Service Worker registrato',!!reg]);
+      rows.push(['Pagina controllata dal Service Worker',!!navigator.serviceWorker.controller]);
+    }catch(e){rows.push(['Service Worker registrato',false]);}
+  }
+  let manifest=null;
+  try{
+    const mr=await fetch('./manifest.webmanifest?diag='+Date.now(),{cache:'no-store'});
+    rows.push(['Manifest raggiungibile',mr.ok]);
+    rows.push(['Manifest MIME corretto',(mr.headers.get('content-type')||'').includes('manifest')||(mr.headers.get('content-type')||'').includes('json')]);
+    if(mr.ok)manifest=await mr.json();
+  }catch(e){rows.push(['Manifest raggiungibile',false]);}
+  if(manifest){
+    rows.push(['Nome app',!!(manifest.name||manifest.short_name)]);
+    rows.push(['start_url',!!manifest.start_url]);
+    rows.push(['display installabile',['standalone','fullscreen','minimal-ui','window-controls-overlay'].includes(manifest.display)]);
+    rows.push(['prefer_related_applications != true',manifest.prefer_related_applications!==true]);
+    const icons=Array.isArray(manifest.icons)?manifest.icons:[];
+    const i192=icons.find(i=>(i.sizes||'').split(/\s+/).includes('192x192'));
+    const i512=icons.find(i=>(i.sizes||'').split(/\s+/).includes('512x512'));
+    rows.push(['Icona 192×192 dichiarata',!!i192]);
+    rows.push(['Icona 512×512 dichiarata',!!i512]);
+    for(const [label,icon] of [['Icona 192×192 caricabile',i192],['Icona 512×512 caricabile',i512]]){
+      if(!icon){rows.push([label,false]);continue;}
+      try{
+        const ir=await fetch(icon.src+'?diag='+Date.now(),{cache:'no-store'});
+        rows.push([label,ir.ok && (ir.headers.get('content-type')||'').includes('image')]);
+      }catch(e){rows.push([label,false]);}
+    }
+  }
+  rows.push(['Evento installazione disponibile',!!deferredInstallPrompt]);
+  const ok=rows.every(r=>r[1]===true);
+  const htmlRows=rows.map(([k,v])=>'<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #e2e8f0"><span>'+esc(k)+'</span><b style="color:'+(v?'#15803d':'#b91c1c')+'">'+(v?'OK':'NO')+'</b></div>').join('');
+  openModal('<div class="modalhead"><h3>Diagnostica PWA</h3><button class="xbtn" onclick="closeModal()">×</button></div><div class="notice"><strong>'+(ok?'Requisiti tecnici rilevati correttamente':'C\'è almeno un requisito non soddisfatto')+'</strong>Se "Evento installazione disponibile" è NO ma tutto il resto è OK, lascia aperta la pagina almeno 30 secondi e riprova.</div>'+htmlRows+'<div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Chiudi</button><button class="btn primary" onclick="promptPwaInstall()">Installa app</button></div>');
+}
+const originalRenderSettings=renderSettings;
+renderSettings=function(){
+  originalRenderSettings();
+  const el=document.getElementById('settings');
+  if(el&&!document.getElementById('pwaDiagCard')){
+    el.insertAdjacentHTML('beforeend','<div id="pwaDiagCard" class="card" style="margin-top:14px"><h3 style="margin-top:0">Installazione PWA</h3><div class="meta">Controlla direttamente nel dispositivo manifest, icone, HTTPS e Service Worker.</div><div class="footer-actions" style="margin-top:12px"><button class="btn secondary" onclick="pwaDiagnostics()">Diagnostica PWA</button><button class="btn primary" onclick="promptPwaInstall()">Installa app</button></div></div>');
+  }
+};
+
+renderDashboard();
+checkNotifications();
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkNotifications()});
+setInterval(checkNotifications,60*60*1000);
+if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}))}
+</script>
+</body>
+</html>
