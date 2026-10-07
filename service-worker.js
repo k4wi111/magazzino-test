@@ -1,4 +1,4 @@
-const CACHE='rabbocchi-muletti-app-v4';
+const CACHE='rabbocchi-muletti-app-v5';
 const CORE=[
   '/',
   '/index.html',
