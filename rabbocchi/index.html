@@ -4,13 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#0f172a" />
-  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-  <meta name="apple-mobile-web-app-title" content="Rabbocchi Muletti" />
-  <link rel="manifest" href="./manifest.webmanifest" />
-  <link rel="icon" href="./icons/favicon.png" type="image/png" sizes="192x192" />
-  <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png" />
+  <meta name="apple-mobile-web-app-title" content="Rabbocchi" />
+  <meta name="application-name" content="Rabbocchi" />
+  <meta name="mobile-web-app-capable" content="yes" />
+
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/icon-180.png" />
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png" />
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png" />
   <title>Rabbocchi Acqua Muletti</title>
   <style>
     :root{--bg:#f4f7fb;--card:#fff;--text:#0f172a;--muted:#64748b;--line:#dbe2ea;--brand:#0f172a;--green:#15803d;--green-bg:#dcfce7;--yellow:#a16207;--yellow-bg:#fef3c7;--red:#b91c1c;--red-bg:#fee2e2;--gray:#475569;--gray-bg:#e2e8f0;--blue:#1d4ed8;--blue-bg:#dbeafe;--orange:#c2410c;--orange-bg:#ffedd5;--purple:#7e22ce;--purple-bg:#f3e8ff;--shadow:0 8px 24px rgba(15,23,42,.08)}
@@ -28,7 +31,7 @@
     .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:8px;margin-bottom:12px}.stat{background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px}.statnum{font-size:24px;font-weight:950}.statlabel{font-size:12px;color:var(--muted);margin-top:2px}
     .split{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:760px){.split{grid-template-columns:1fr}.import-badge{display:none}nav{top:67px}.title{font-size:17px}.status-buttons{grid-template-columns:1fr 1fr}.item{flex-direction:column}.item-actions{justify-content:flex-start;width:100%}.item-actions .btn{flex:1}.section h2{font-size:20px}}
     .modal{position:fixed;inset:0;z-index:100;background:rgba(15,23,42,.55);display:none;align-items:flex-end;justify-content:center;padding:0}.modal.open{display:flex}.modalbox{background:#fff;width:min(720px,100%);max-height:92vh;overflow:auto;border-radius:20px 20px 0 0;padding:18px 16px calc(20px + env(safe-area-inset-bottom));box-shadow:0 -16px 44px rgba(15,23,42,.2)}@media(min-width:700px){.modal{align-items:center;padding:20px}.modalbox{border-radius:18px;max-height:88vh}}.modalhead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:12px}.modalhead h3{margin:0;font-size:19px}.xbtn{border:0;background:#e2e8f0;border-radius:50%;width:38px;height:38px;font-size:20px}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.form-grid .full{grid-column:1/-1}.form-field{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:800;color:#475569}.form-field textarea{min-height:90px;resize:vertical}.modal-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:14px;flex-wrap:wrap}@media(max-width:600px){.form-grid{grid-template-columns:1fr}.form-grid .full{grid-column:auto}.modal-actions .btn{flex:1}}
-    .empty{padding:24px;text-align:center;color:var(--muted);background:#fff;border:1px dashed #cbd5e1;border-radius:14px}.event{border-left:5px solid #64748b}.danger-text{color:var(--red);font-weight:800}.footer-actions{display:flex;gap:8px;flex-wrap:wrap}.footer-actions .btn{flex:1;min-width:150px}.pwa-install-fab{position:fixed;right:16px;bottom:18px;z-index:90;border:0;border-radius:14px;padding:12px 16px;background:#0f172a;color:#fff;font-weight:900;box-shadow:0 10px 30px rgba(15,23,42,.25);display:none}
+    .empty{padding:24px;text-align:center;color:var(--muted);background:#fff;border:1px dashed #cbd5e1;border-radius:14px}.event{border-left:5px solid #64748b}.danger-text{color:var(--red);font-weight:800}.footer-actions{display:flex;gap:8px;flex-wrap:wrap}.footer-actions .btn{flex:1;min-width:150px}
   </style>
 </head>
 <body>
@@ -49,7 +52,7 @@
   <section id="vehicles" class="section"></section>
   <section id="settings" class="section"></section>
 </main>
-<button id="pwaInstallBtn" class="pwa-install-fab" type="button">Installa app</button>\n<div id="modal" class="modal" aria-hidden="true"><div class="modalbox"><div id="modalContent"></div></div></div>
+<div id="modal" class="modal" aria-hidden="true"><div class="modalbox"><div id="modalContent"></div></div></div>
 <script>
 'use strict';
 const STORAGE_KEY='rabbocchiMuletti_state_v2';
@@ -202,87 +205,11 @@ function closeModal(){document.getElementById('modal').classList.remove('open');
 document.getElementById('modal').addEventListener('click',e=>{if(e.target.id==='modal')closeModal()});
 
 
-let deferredInstallPrompt=null;
-window.addEventListener('beforeinstallprompt',e=>{
-  e.preventDefault();
-  deferredInstallPrompt=e;
-  const b=document.getElementById('pwaInstallBtn');
-  if(b)b.style.display='block';
-});
-window.addEventListener('appinstalled',()=>{
-  deferredInstallPrompt=null;
-  const b=document.getElementById('pwaInstallBtn');
-  if(b)b.style.display='none';
-});
-async function promptPwaInstall(){
-  if(!deferredInstallPrompt){
-    alert('Chrome non ha ancora dichiarato questa PWA installabile. Apri Impostazioni > Diagnostica PWA per vedere quale requisito manca.');
-    return;
-  }
-  deferredInstallPrompt.prompt();
-  await deferredInstallPrompt.userChoice;
-  deferredInstallPrompt=null;
-  const b=document.getElementById('pwaInstallBtn');
-  if(b)b.style.display='none';
-}
-document.getElementById('pwaInstallBtn').addEventListener('click',promptPwaInstall);
-
-async function pwaDiagnostics(){
-  const rows=[];
-  rows.push(['Connessione sicura (HTTPS)',window.isSecureContext]);
-  rows.push(['Supporto Service Worker','serviceWorker' in navigator]);
-  let reg=null;
-  if('serviceWorker' in navigator){
-    try{
-      reg=await navigator.serviceWorker.getRegistration();
-      rows.push(['Service Worker registrato',!!reg]);
-      rows.push(['Pagina controllata dal Service Worker',!!navigator.serviceWorker.controller]);
-    }catch(e){rows.push(['Service Worker registrato',false]);}
-  }
-  let manifest=null;
-  try{
-    const mr=await fetch('./manifest.webmanifest?diag='+Date.now(),{cache:'no-store'});
-    rows.push(['Manifest raggiungibile',mr.ok]);
-    rows.push(['Manifest MIME corretto',(mr.headers.get('content-type')||'').includes('manifest')||(mr.headers.get('content-type')||'').includes('json')]);
-    if(mr.ok)manifest=await mr.json();
-  }catch(e){rows.push(['Manifest raggiungibile',false]);}
-  if(manifest){
-    rows.push(['Nome app',!!(manifest.name||manifest.short_name)]);
-    rows.push(['start_url',!!manifest.start_url]);
-    rows.push(['display installabile',['standalone','fullscreen','minimal-ui','window-controls-overlay'].includes(manifest.display)]);
-    rows.push(['prefer_related_applications != true',manifest.prefer_related_applications!==true]);
-    const icons=Array.isArray(manifest.icons)?manifest.icons:[];
-    const i192=icons.find(i=>(i.sizes||'').split(/\s+/).includes('192x192'));
-    const i512=icons.find(i=>(i.sizes||'').split(/\s+/).includes('512x512'));
-    rows.push(['Icona 192×192 dichiarata',!!i192]);
-    rows.push(['Icona 512×512 dichiarata',!!i512]);
-    for(const [label,icon] of [['Icona 192×192 caricabile',i192],['Icona 512×512 caricabile',i512]]){
-      if(!icon){rows.push([label,false]);continue;}
-      try{
-        const ir=await fetch(icon.src+'?diag='+Date.now(),{cache:'no-store'});
-        rows.push([label,ir.ok && (ir.headers.get('content-type')||'').includes('image')]);
-      }catch(e){rows.push([label,false]);}
-    }
-  }
-  rows.push(['Evento installazione disponibile',!!deferredInstallPrompt]);
-  const ok=rows.every(r=>r[1]===true);
-  const htmlRows=rows.map(([k,v])=>'<div style="display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid #e2e8f0"><span>'+esc(k)+'</span><b style="color:'+(v?'#15803d':'#b91c1c')+'">'+(v?'OK':'NO')+'</b></div>').join('');
-  openModal('<div class="modalhead"><h3>Diagnostica PWA</h3><button class="xbtn" onclick="closeModal()">×</button></div><div class="notice"><strong>'+(ok?'Requisiti tecnici rilevati correttamente':'C\'è almeno un requisito non soddisfatto')+'</strong>Se "Evento installazione disponibile" è NO ma tutto il resto è OK, lascia aperta la pagina almeno 30 secondi e riprova.</div>'+htmlRows+'<div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Chiudi</button><button class="btn primary" onclick="promptPwaInstall()">Installa app</button></div>');
-}
-const originalRenderSettings=renderSettings;
-renderSettings=function(){
-  originalRenderSettings();
-  const el=document.getElementById('settings');
-  if(el&&!document.getElementById('pwaDiagCard')){
-    el.insertAdjacentHTML('beforeend','<div id="pwaDiagCard" class="card" style="margin-top:14px"><h3 style="margin-top:0">Installazione PWA</h3><div class="meta">Controlla direttamente nel dispositivo manifest, icone, HTTPS e Service Worker.</div><div class="footer-actions" style="margin-top:12px"><button class="btn secondary" onclick="pwaDiagnostics()">Diagnostica PWA</button><button class="btn primary" onclick="promptPwaInstall()">Installa app</button></div></div>');
-  }
-};
-
 renderDashboard();
 checkNotifications();
 document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')checkNotifications()});
 setInterval(checkNotifications,60*60*1000);
-if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./service-worker.js').catch(()=>{}))}
+if('serviceWorker'in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('service-worker.js').catch(()=>{}))}
 </script>
 </body>
 </html>
