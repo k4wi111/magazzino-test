@@ -8,3 +8,4 @@
 
 /icons/*.png
   Content-Type: image/png
+  Cache-Control: public, max-age=3600
