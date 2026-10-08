@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rabbocchi-v2-vehicle-images';
+const CACHE_NAME = 'rabbocchi-v3-linde-image';
 
 const ASSETS = [
   './',
@@ -9,7 +9,7 @@ const ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './images/vehicles/aisle.webp',
-  './images/vehicles/linde.webp',
+  './images/vehicles/linde-v2.webp',
   './images/vehicles/e30.webp',
   './images/vehicles/elettrico.webp',
   './images/vehicles/lungo.webp',
