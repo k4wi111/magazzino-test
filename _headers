@@ -8,3 +8,7 @@
 
 /rabbocchi/icons/*.png
   Content-Type: image/png
+
+/rabbocchi/images/vehicles/*.webp
+  Content-Type: image/webp
+  Cache-Control: public, max-age=86400

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rabbocchi-v1-clean';
+const CACHE_NAME = 'rabbocchi-v2-vehicle-images';
 
 const ASSETS = [
   './',
@@ -7,7 +7,13 @@ const ASSETS = [
   './service-worker.js',
   './icons/icon-180.png',
   './icons/icon-192.png',
-  './icons/icon-512.png'
+  './icons/icon-512.png',
+  './images/vehicles/aisle.webp',
+  './images/vehicles/linde.webp',
+  './images/vehicles/e30.webp',
+  './images/vehicles/elettrico.webp',
+  './images/vehicles/lungo.webp',
+  './images/vehicles/armanni.webp'
 ];
 
 self.addEventListener('install', event => {
