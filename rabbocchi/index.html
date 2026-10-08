@@ -169,10 +169,10 @@ function renderHistory(){
   el.innerHTML=`<div class="section-head"><div><h2>Storico acqua</h2><div class="subtitle" style="color:var(--muted)">Tocca una cella per modificarla o eliminarla</div></div><div class="footer-actions"><button class="btn secondary" onclick="exportWaterCSV()">Esporta CSV</button><button class="btn secondary" onclick="window.print()">Stampa / PDF</button></div></div><div class="filterbar"><label class="filter">Dal<input id="hf" type="date" value="${from}" onchange="renderHistory()"></label><label class="filter">Al<input id="ht" type="date" value="${to}" onchange="renderHistory()"></label><label class="filter">Mezzo<select id="hv" onchange="renderHistory()"><option value="all">Tutti</option>${allVehicles().map(v=>`<option value="${v.id}" ${vid===v.id?'selected':''}>${esc(v.name)}${v.active?'':' (archiviato)'}</option>`).join('')}</select></label></div>${historyTable(from,to,vid)}`;
 }
 function historyTable(from,to,vid){let rs=state.waterRecords.filter(r=>(!from||r.date>=from)&&(!to||r.date<=to)&&(vid==='all'||r.vehicleId===vid));const dates=[...new Set(rs.map(r=>r.date))].sort().reverse();const all=allVehicles();const vehicles=(vid==='all'?[...all.filter(v=>v.active),...all.filter(v=>!v.active)]:all.filter(v=>v.id===vid));if(!dates.length)return '<div class="empty">Nessun record nel periodo selezionato.</div>';const by=new Map(rs.map(r=>[r.date+'|'+r.vehicleId,r]));return `<div class="table-wrap"><table><thead><tr><th>Data</th>${vehicles.map(v=>`<th>${esc(v.name)}${v.active?'':'<br><span style="font-weight:500;color:#64748b">archiviato</span>'}</th>`).join('')}</tr></thead><tbody>${dates.map(d=>`<tr><td>${fmtDate(d)}</td>${vehicles.map(v=>{const r=by.get(d+'|'+v.id);return `<td>${r?`<button class="cellbtn st-${r.status}" title="${esc(r.note)}" onclick="editWater('${r.id}')">${esc(STATUS[r.status])}${r.note?' *':''}</button>`:'—'}</td>`}).join('')}</tr>`).join('')}</tbody></table></div>`}
-function editWater(id){const r=state.waterRecords.find(x=>x.id===id);if(!r)return;openModal(`<div class="modalhead"><h3>Modifica registrazione</h3><button class="xbtn" onclick="closeModal()">×</button></div><div class="form-grid"><label class="form-field">Mezzo<input value="${esc(r.vehicleName)}" disabled></label><label class="form-field">Data<input id="ew-date" type="date" value="${r.date}"></label><label class="form-field full">Stato<select id="ew-status">${Object.entries(STATUS).map(([k,l])=>`<option value="${k}" ${r.status===k?'selected':''}>${l}</option>`).join('')}</select></label><label class="form-field full">Nota<textarea id="ew-note">${esc(r.note)}</textarea></label></div><div class="modal-actions"><button class="btn danger" onclick="deleteWater('${r.id}')">Elimina</button><button class="btn secondary" onclick="closeModal()">Annulla</button><button class="btn primary" onclick="saveWaterEdit('${r.id}')">Salva</button></div>`)}
+function editWater(id){const r=state.waterRecords.find(x=>x.id===id);if(!r)return;openModal(`<div class="modalhead"><h3>Modifica registrazione</h3><button class="xbtn" onclick="closeModal()">×</button></div><div class="form-grid"><label class="form-field">Mezzo<input value="${esc(getVehicle(r.vehicleId)?.name||r.vehicleName)}" disabled></label><label class="form-field">Data<input id="ew-date" type="date" value="${r.date}"></label><label class="form-field full">Stato<select id="ew-status">${Object.entries(STATUS).map(([k,l])=>`<option value="${k}" ${r.status===k?'selected':''}>${l}</option>`).join('')}</select></label><label class="form-field full">Nota<textarea id="ew-note">${esc(r.note)}</textarea></label></div><div class="modal-actions"><button class="btn danger" onclick="deleteWater('${r.id}')">Elimina</button><button class="btn secondary" onclick="closeModal()">Annulla</button><button class="btn primary" onclick="saveWaterEdit('${r.id}')">Salva</button></div>`)}
 function saveWaterEdit(id){const r=state.waterRecords.find(x=>x.id===id);r.date=document.getElementById('ew-date').value;r.status=document.getElementById('ew-status').value;r.note=document.getElementById('ew-note').value.trim();saveState();closeModal();renderHistory();renderDashboard()}
 function deleteWater(id){if(!confirm('Eliminare questa registrazione?'))return;state.waterRecords=state.waterRecords.filter(x=>x.id!==id);saveState();closeModal();renderHistory();renderDashboard()}
-function exportWaterCSV(){const rows=[['Data','Mezzo','Stato','Nota']];state.waterRecords.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(r=>rows.push([r.date,r.vehicleName,STATUS[r.status],r.note||'']));downloadText('storico-rabbocchi.csv',rows.map(row=>row.map(csvCell).join(';')).join('\n'),'text/csv;charset=utf-8')}
+function exportWaterCSV(){const rows=[['Data','Mezzo','Stato','Nota']];state.waterRecords.slice().sort((a,b)=>a.date.localeCompare(b.date)).forEach(r=>rows.push([r.date,getVehicle(r.vehicleId)?.name||r.vehicleName,STATUS[r.status],r.note||'']));downloadText('storico-rabbocchi.csv',rows.map(row=>row.map(csvCell).join(';')).join('\n'),'text/csv;charset=utf-8')}
 const csvCell=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
 
 let maintFilters={vehicle:'all',status:'open',type:'all',priority:'all'};
@@ -194,7 +194,49 @@ function confirmAssignEvent(id){const e=state.historicalEvents.find(x=>x.id===id
 
 function renderVehicles(){const el=document.getElementById('vehicles');el.innerHTML=`<div class="section-head"><div><h2>Gestione mezzi</h2><div class="subtitle" style="color:var(--muted)">Archivia invece di cancellare per conservare lo storico</div></div><button class="btn primary" onclick="addVehiclePrompt()">+ Aggiungi mezzo</button></div><div class="list">${allVehicles().map(v=>{const water=vehicleWater(v.id).length,m=state.maintenances.filter(x=>x.vehicleId===v.id).length;return `<div class="item"><div class="item-main"><div class="item-title">${esc(v.name)} ${v.active?'':'<span class="tag">Archiviato</span>'}</div><div class="item-sub">${water} registrazioni acqua · ${m} manutenzioni</div></div><div class="item-actions"><button class="btn secondary small" onclick="renameVehicle('${v.id}')">Rinomina</button><button class="btn secondary small" onclick="toggleVehicle('${v.id}')">${v.active?'Archivia':'Riattiva'}</button><button class="btn secondary small" onclick="openVehicleDetail('${v.id}')">Dettagli</button><button class="btn danger small" ${water||m?'disabled':''} onclick="deleteVehicle('${v.id}')">Elimina</button></div></div>`}).join('')}</div>`}
 function addVehiclePrompt(){const name=prompt('Nome del nuovo mezzo:');if(!name?.trim())return;state.vehicles.push({id:uid('vehicle'),name:name.trim(),active:true,sort:Math.max(0,...state.vehicles.map(v=>v.sort||0))+1});saveState();renderVehicles();renderDashboard()}
-function renameVehicle(id){const v=getVehicle(id),name=prompt('Nuovo nome:',v.name);if(!name?.trim()||name.trim()===v.name)return;v.name=name.trim();saveState();renderVehicles();renderDashboard()}
+function renameVehicle(id){
+  const v=getVehicle(id);if(!v)return;
+  openModal(`<div class="modalhead"><h3>Rinomina mezzo</h3><button class="xbtn" onclick="closeModal()">×</button></div>
+    <div class="notice"><strong>Stesso mezzo, nuovo nome</strong>Il nuovo nome verrà usato in tutta l'app: situazione, storico acqua, manutenzioni, filtri, esportazioni e riferimenti storici. Se invece il mezzo è stato sostituito fisicamente, archivia questo mezzo e aggiungine uno nuovo.</div>
+    <div class="form-grid"><label class="form-field full">Nuovo nome<input id="rv-name" value="${esc(v.name)}" maxlength="80" autocomplete="off"></label></div>
+    <div class="modal-actions"><button class="btn secondary" onclick="closeModal()">Annulla</button><button class="btn primary" onclick="saveVehicleRename('${id}')">Rinomina</button></div>`);
+  setTimeout(()=>{const input=document.getElementById('rv-name');if(input){input.focus();input.select();}},50);
+}
+function saveVehicleRename(id){
+  const v=getVehicle(id);if(!v)return;
+  const input=document.getElementById('rv-name');
+  const newName=(input?.value||'').trim();
+  const oldName=v.name;
+  if(!newName){alert('Inserisci un nome per il mezzo.');return}
+  if(newName===oldName){closeModal();return}
+  const duplicate=state.vehicles.some(x=>x.id!==id&&x.name.trim().toLocaleLowerCase('it')===newName.toLocaleLowerCase('it'));
+  if(duplicate){alert('Esiste già un mezzo con questo nome.');return}
+
+  if(!Array.isArray(v.previousNames))v.previousNames=[];
+  if(oldName&&!v.previousNames.includes(oldName))v.previousNames.push(oldName);
+  v.name=newName;
+
+  // Sincronizza le copie del nome, mantenendo l'ID del mezzo come riferimento reale.
+  state.waterRecords.filter(r=>r.vehicleId===id).forEach(r=>r.vehicleName=newName);
+  state.maintenances.filter(m=>m.vehicleId===id).forEach(m=>m.vehicleName=newName);
+
+  // Aggiorna anche i riferimenti testuali degli eventi storici.
+  state.historicalEvents.forEach(e=>{
+    if(e.details&&Object.prototype.hasOwnProperty.call(e.details,oldName)){
+      const updated={};
+      Object.entries(e.details).forEach(([k,val])=>updated[k===oldName?newName:k]=val);
+      e.details=updated;
+    }
+    if(e.assignedVehicleId===id&&typeof e.description==='string'){
+      e.description=e.description.replace(' — assegnato manualmente a '+oldName,' — assegnato manualmente a '+newName);
+    }
+  });
+
+  saveState();
+  closeModal();
+  const active=document.querySelector('.section.active')?.id||'vehicles';
+  renderPage(active);
+}
 function toggleVehicle(id){const v=getVehicle(id);v.active=!v.active;v.archivedAt=v.active?'':todayISO();saveState();renderVehicles();renderDashboard()}
 function deleteVehicle(id){const has=state.waterRecords.some(r=>r.vehicleId===id)||state.maintenances.some(m=>m.vehicleId===id);if(has){alert('Questo mezzo ha uno storico e non può essere eliminato. Puoi archiviarlo.');return}if(!confirm('Eliminare definitivamente il mezzo?'))return;state.vehicles=state.vehicles.filter(v=>v.id!==id);saveState();renderVehicles();renderDashboard()}
 function openVehicleDetail(id){const v=getVehicle(id);const info=waterInfo(id),recent=vehicleWater(id).slice(0,6),open=openMaint(id),done=state.maintenances.filter(m=>m.vehicleId===id&&m.status==='Completata').sort((a,b)=>(b.completedAt||'').localeCompare(a.completedAt||'')).slice(0,5);openModal(`<div class="modalhead"><div><h3>${esc(v.name)}</h3><div class="subtitle" style="color:var(--muted)">${v.active?'Mezzo attivo':'Mezzo archiviato'}</div></div><button class="xbtn" onclick="closeModal()">×</button></div><div class="notice"><strong>Situazione acqua</strong>Ultimo rabbocco: ${info.refill?fmtDate(info.refill.date):'—'} · Giorni: ${info.days??'—'} · Stato: ${esc(info.label)}</div><h3>Manutenzioni aperte</h3>${open.length?`<div class="list">${open.map(maintItem).join('')}</div>`:'<div class="empty">Nessuna manutenzione aperta.</div>'}<h3>Rabbocchi recenti</h3>${recent.length?`<div class="list">${recent.map(r=>`<div class="item"><div class="item-main"><div class="item-title">${fmtDate(r.date)} — ${esc(STATUS[r.status])}</div>${r.note?`<div class="item-sub">${esc(r.note)}</div>`:''}</div></div>`).join('')}</div>`:'<div class="empty">Nessun record.</div>'}<h3>Manutenzioni completate</h3>${done.length?`<div class="list">${done.map(maintItem).join('')}</div>`:'<div class="empty">Nessuna manutenzione completata.</div>'}`)}
